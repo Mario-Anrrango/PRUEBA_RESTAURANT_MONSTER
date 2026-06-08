@@ -13,6 +13,7 @@ public class Empleado implements Serializable {
     private String correo;
     private String fechaIngreso;
     private int idUsuario;
+    private int activo;
 
     public Empleado() {}
 
@@ -42,6 +43,9 @@ public class Empleado implements Serializable {
 
     public int getIdUsuario()                { return idUsuario; }
     public void setIdUsuario(int u)          { this.idUsuario = u; }
+
+    public int getActivo()                   { return activo; }
+    public void setActivo(int a)             { this.activo = a; }
 
     public String getNombreCompleto()        { return nombres + " " + apellidos; }
 }

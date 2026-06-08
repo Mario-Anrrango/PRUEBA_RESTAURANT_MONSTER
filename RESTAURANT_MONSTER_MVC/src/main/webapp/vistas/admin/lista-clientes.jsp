@@ -39,16 +39,20 @@
     <% if (request.getParameter("ok") != null) { %>
         <div class="alerta alerta-exito">Cliente registrado correctamente.</div>
     <% } %>
+    <% if (request.getParameter("editado") != null) { %>
+        <div class="alerta alerta-exito">Cliente actualizado correctamente.</div>
+    <% } %>
 
     <table class="tabla">
         <thead>
             <tr>
                 <th>#</th><th>Nombres</th><th>Apellidos</th><th>Cédula</th>
-                <th>Teléfono</th><th>Correo</th><th>Dirección</th>
+                <th>Teléfono</th><th>Correo</th><th>Dirección</th><th>Estado</th><th>Acciones</th>
             </tr>
         </thead>
         <tbody>
-        <% if (clientes != null) { for (Cliente c : clientes) { %>
+        <% if (clientes != null) { for (Cliente c : clientes) {
+               boolean activo = c.getActivo() == 1; %>
             <tr>
                 <td><%= c.getId() %></td>
                 <td><%= c.getNombres() %></td>
@@ -57,6 +61,21 @@
                 <td><%= c.getTelefono() != null ? c.getTelefono() : "-" %></td>
                 <td><%= c.getCorreo() != null ? c.getCorreo() : "-" %></td>
                 <td><%= c.getDireccion() != null ? c.getDireccion() : "-" %></td>
+                <td>
+                    <span style="background:<%= activo ? "#27ae60" : "#e74c3c" %>;color:white;
+                                 padding:3px 10px;border-radius:12px;font-size:0.85em;">
+                        <%= activo ? "Activo" : "Inactivo" %>
+                    </span>
+                </td>
+                <td style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <a href="${pageContext.request.contextPath}/admin?accion=editarCliente&id=<%= c.getId() %>"
+                       class="btn btn-secundario" style="padding:4px 12px;font-size:0.85em;">Editar</a>
+                    <a href="${pageContext.request.contextPath}/admin?accion=toggleCliente&idUsuario=<%= c.getIdUsuario() %>"
+                       class="btn" style="padding:4px 12px;font-size:0.85em;color:white;
+                                          background:<%= activo ? "#e74c3c" : "#27ae60" %>;">
+                        <%= activo ? "Desactivar" : "Activar" %>
+                    </a>
+                </td>
             </tr>
         <% } } %>
         </tbody>
