@@ -74,6 +74,31 @@ public class PedidoServlet extends HttpServlet {
             }
         }
 
+        PedidoDAO pDao = new PedidoDAO();
+        int idPedido;
+
+        // Si hay pedido pendiente, agregar los nuevos ítems a ese pedido
+        String idPendienteStr = req.getParameter("idPedidoPendiente");
+        if (idPendienteStr != null && !idPendienteStr.isEmpty()) {
+            idPedido = Integer.parseInt(idPendienteStr);
+            Pedido existente = pDao.buscarPorId(idPedido);
+            if (existente != null && "PENDIENTE".equals(existente.getEstado())
+                    && existente.getIdCliente() == cliente.getId()) {
+                double nuevaSubtotal = existente.getSubtotal() + subtotal;
+                double nuevaIva      = nuevaSubtotal * IVA_PCT;
+                double nuevoServicio = nuevaSubtotal * SERVICIO_PCT;
+                double nuevoTotal    = nuevaSubtotal + nuevaIva + nuevoServicio;
+                for (DetallePedido d : detalles) {
+                    d.setIdPedido(idPedido);
+                    pDao.insertarDetalle(d);
+                }
+                pDao.actualizarTotales(idPedido, nuevaSubtotal, nuevaIva, nuevoServicio, nuevoTotal);
+                resp.sendRedirect(req.getContextPath() + "/factura?id=" + idPedido);
+                return;
+            }
+        }
+
+        // Crear nuevo pedido
         double iva       = subtotal * IVA_PCT;
         double servicio  = subtotal * SERVICIO_PCT;
         double total     = subtotal + iva + servicio;
@@ -88,8 +113,7 @@ public class PedidoServlet extends HttpServlet {
         pedido.setTotal(total);
         pedido.setDetalles(detalles);
 
-        PedidoDAO pDao = new PedidoDAO();
-        int idPedido = pDao.insertar(pedido);
+        idPedido = pDao.insertar(pedido);
 
         if (idPedido < 0) {
             resp.sendRedirect(req.getContextPath() + "/menu?error=pedido");

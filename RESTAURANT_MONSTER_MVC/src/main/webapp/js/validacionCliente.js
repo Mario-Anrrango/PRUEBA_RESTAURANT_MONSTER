@@ -5,28 +5,33 @@
 
 
 function validarFormulario(evento) {
-    const cedula = document.getElementById('cedula').value.trim();
-    const telefono = document.getElementById('telefono').value.trim();
-    const correo = document.getElementById('correo').value.trim();
-
-    if (!validarCedulaEcuatoriana(cedula)) {
-        alert('Error: Por favor, ingrese una cédula ecuatoriana válida.');
-        evento.preventDefault();
-        return false;
+    const cedulaEl = document.getElementById('cedula');
+    if (cedulaEl) {
+        if (!validarCedulaEcuatoriana(cedulaEl.value.trim())) {
+            alert('Error: Por favor, ingrese una cédula ecuatoriana válida.');
+            evento.preventDefault();
+            return false;
+        }
     }
 
-    const regexTelefono = /^0\d{9}$/;
-    if (!regexTelefono.test(telefono)) {
-        alert('Error: El número de teléfono debe tener 10 dígitos y empezar con 0.');
-        evento.preventDefault();
-        return false;
+    const telefonoEl = document.getElementById('telefono');
+    if (telefonoEl && telefonoEl.value.trim()) {
+        const regexTelefono = /^0\d{9}$/;
+        if (!regexTelefono.test(telefonoEl.value.trim())) {
+            alert('Error: El teléfono debe tener 10 dígitos y empezar con 0.');
+            evento.preventDefault();
+            return false;
+        }
     }
 
-    const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!regexCorreo.test(correo)) {
-        alert('Error: Por favor, ingrese un formato de correo electrónico válido.');
-        evento.preventDefault();
-        return false;
+    const correoEl = document.getElementById('correo');
+    if (correoEl && correoEl.value.trim()) {
+        const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!regexCorreo.test(correoEl.value.trim())) {
+            alert('Error: Por favor, ingrese un correo electrónico válido.');
+            evento.preventDefault();
+            return false;
+        }
     }
 
     return true;
@@ -98,10 +103,17 @@ function bloquearCaracteresCorreo(evento) {
     if (tecla.length === 1) {
         // La expresión regular permite: letras (sin tildes), números, arroba, punto, guion medio y guion bajo
         const regexCorreo = /^[a-zA-Z0-9@.\-_]+$/;
-        
+
         if (!regexCorreo.test(tecla)) {
             // Si intentan teclear un espacio, una tilde o un símbolo inválido, lo bloqueamos
             evento.preventDefault();
         }
+    }
+}
+
+function permitirSoloNumeros(input, maxLen) {
+    input.value = input.value.replace(/\D/g, '');
+    if (maxLen && input.value.length > maxLen) {
+        input.value = input.value.slice(0, maxLen);
     }
 }

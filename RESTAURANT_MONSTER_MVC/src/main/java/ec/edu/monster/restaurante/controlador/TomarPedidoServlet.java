@@ -38,6 +38,12 @@ public class TomarPedidoServlet extends HttpServlet {
             platosPorCategoria.put(cat.getId(), pDao.listarPorCategoria(cat.getId()));
         }
 
+        // Buscar pedido pendiente del cliente
+        Pedido pendiente = new PedidoDAO().buscarPendientePorCliente(idCliente);
+        if (pendiente != null) {
+            req.setAttribute("pedidoPendiente", pendiente);
+        }
+
         req.setAttribute("clienteSeleccionado", cliente);
         req.setAttribute("categorias", categorias);
         req.setAttribute("platosPorCategoria", platosPorCategoria);
@@ -87,6 +93,31 @@ public class TomarPedidoServlet extends HttpServlet {
             }
         }
 
+        PedidoDAO pDao = new PedidoDAO();
+        int idPedido;
+
+        // Si hay pedido pendiente, agregar los nuevos ítems a ese pedido
+        String idPendienteStr = req.getParameter("idPedidoPendiente");
+        if (idPendienteStr != null && !idPendienteStr.isEmpty()) {
+            idPedido = Integer.parseInt(idPendienteStr);
+            Pedido existente = pDao.buscarPorId(idPedido);
+            if (existente != null && "PENDIENTE".equals(existente.getEstado())
+                    && existente.getIdCliente() == idCliente) {
+                double nuevaSubtotal = existente.getSubtotal() + subtotal;
+                double nuevaIva      = nuevaSubtotal * IVA_PCT;
+                double nuevoServicio = nuevaSubtotal * SERVICIO_PCT;
+                double nuevoTotal    = nuevaSubtotal + nuevaIva + nuevoServicio;
+                for (DetallePedido d : detalles) {
+                    d.setIdPedido(idPedido);
+                    pDao.insertarDetalle(d);
+                }
+                pDao.actualizarTotales(idPedido, nuevaSubtotal, nuevaIva, nuevoServicio, nuevoTotal);
+                resp.sendRedirect(req.getContextPath() + "/factura?id=" + idPedido);
+                return;
+            }
+        }
+
+        // Crear nuevo pedido
         double iva      = subtotal * IVA_PCT;
         double servicio = subtotal * SERVICIO_PCT;
         double total    = subtotal + iva + servicio;
@@ -101,8 +132,7 @@ public class TomarPedidoServlet extends HttpServlet {
         pedido.setServicio(servicio);
         pedido.setTotal(total);
 
-        PedidoDAO pDao = new PedidoDAO();
-        int idPedido = pDao.insertar(pedido);
+        idPedido = pDao.insertar(pedido);
         for (DetallePedido d : detalles) {
             d.setIdPedido(idPedido);
             pDao.insertarDetalle(d);

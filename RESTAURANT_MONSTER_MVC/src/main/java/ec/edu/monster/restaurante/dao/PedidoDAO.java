@@ -104,6 +104,44 @@ public class PedidoDAO {
         return false;
     }
 
+    public Pedido buscarPendientePorCliente(int idCliente) {
+        String sql = "SELECT * FROM pedidos WHERE id_cliente=? AND estado='PENDIENTE' " +
+                     "ORDER BY fecha DESC, hora DESC LIMIT 1";
+        try (Connection cn = ConexionDB.obtener();
+             PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, idCliente);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                Pedido p = new Pedido();
+                p.setId(rs.getInt("id"));
+                p.setIdCliente(rs.getInt("id_cliente"));
+                p.setFecha(rs.getString("fecha"));
+                p.setHora(rs.getString("hora"));
+                p.setEstado(rs.getString("estado"));
+                p.setSubtotal(rs.getDouble("subtotal"));
+                p.setIva(rs.getDouble("iva"));
+                p.setServicio(rs.getDouble("servicio"));
+                p.setTotal(rs.getDouble("total"));
+                return p;
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return null;
+    }
+
+    public boolean actualizarTotales(int idPedido, double subtotal, double iva, double servicio, double total) {
+        String sql = "UPDATE pedidos SET subtotal=?, iva=?, servicio=?, total=? WHERE id=?";
+        try (Connection cn = ConexionDB.obtener();
+             PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setDouble(1, subtotal);
+            ps.setDouble(2, iva);
+            ps.setDouble(3, servicio);
+            ps.setDouble(4, total);
+            ps.setInt(5, idPedido);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) { e.printStackTrace(); }
+        return false;
+    }
+
     public List<Pedido> listarPorCliente(int idCliente) {
         List<Pedido> lista = new ArrayList<>();
         String sql = "SELECT * FROM pedidos WHERE id_cliente=? ORDER BY fecha DESC, hora DESC";

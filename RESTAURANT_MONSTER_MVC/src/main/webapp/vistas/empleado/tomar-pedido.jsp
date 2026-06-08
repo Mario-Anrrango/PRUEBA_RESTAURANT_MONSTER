@@ -9,6 +9,7 @@
     List<Categoria> categorias  = (List<Categoria>) request.getAttribute("categorias");
     Map<Integer, List<Plato>> platosPorCategoria =
         (Map<Integer, List<Plato>>) request.getAttribute("platosPorCategoria");
+    Pedido pedidoPendiente = (Pedido) request.getAttribute("pedidoPendiente");
 %>
 <!DOCTYPE html>
 <html lang="es">
@@ -46,6 +47,39 @@
 
     <form action="${pageContext.request.contextPath}/empleado/tomar-pedido" method="post" id="formPedido">
         <input type="hidden" name="idCliente" value="<%= clienteSeleccionado.getId() %>">
+
+        <% if (pedidoPendiente != null) { %>
+        <input type="hidden" id="campoPedidoPendiente" name="idPedidoPendiente" value="<%= pedidoPendiente.getId() %>">
+        <div style="background:#eaf4fb;border:1px solid #aed6f1;border-radius:10px;padding:18px 20px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                <div>
+                    <span style="font-size:1.1em;font-weight:bold;color:#1a5276;">
+                        Pedido pendiente #<%= pedidoPendiente.getId() %> — <%= clienteSeleccionado.getNombreCompleto() %>
+                    </span>
+                    <span style="color:#555;margin-left:10px;">
+                        Subtotal actual: <strong>$<%= String.format("%.2f", pedidoPendiente.getSubtotal()) %></strong>
+                        &nbsp;·&nbsp; Total c/imp: <strong>$<%= String.format("%.2f", pedidoPendiente.getTotal()) %></strong>
+                    </span>
+                </div>
+                <a href="${pageContext.request.contextPath}/factura?id=<%= pedidoPendiente.getId() %>"
+                   class="btn btn-primario" style="background:#27ae60;border-radius:20px;padding:8px 20px;">
+                    Cobrar ahora
+                </a>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:24px;">
+                <label style="cursor:pointer;display:flex;align-items:center;gap:6px;">
+                    <input type="radio" name="modoPedido" value="agregar" checked
+                           onchange="toggleModoPedido(this.value)">
+                    <span style="color:#1a5276;font-weight:600;">Añadir platos a este pedido</span>
+                </label>
+                <label style="cursor:pointer;display:flex;align-items:center;gap:6px;">
+                    <input type="radio" name="modoPedido" value="nuevo"
+                           onchange="toggleModoPedido(this.value)">
+                    <span style="color:#7d3c00;font-weight:600;">Iniciar un pedido nuevo</span>
+                </label>
+            </div>
+        </div>
+        <% } %>
 
         <% if (categorias != null) {
             for (Categoria cat : categorias) {
@@ -103,6 +137,24 @@
 
 <script>
     const seleccionados = {};
+
+    function toggleModoPedido(valor) {
+        const campo = document.getElementById('campoPedidoPendiente');
+        if (!campo) return;
+        if (valor === 'nuevo') {
+            campo.disabled = true;
+            campo.value = '';
+        } else {
+            campo.disabled = false;
+            campo.value = campo.dataset.id;
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+        const campo = document.getElementById('campoPedidoPendiente');
+        if (campo) campo.dataset.id = campo.value;
+    });
+
     function toggleCantidad(idPlato, checked, precio) {
         const contador = document.getElementById('contador_' + idPlato);
         const card     = document.getElementById('card_' + idPlato);

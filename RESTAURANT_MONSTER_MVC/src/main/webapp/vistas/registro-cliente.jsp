@@ -21,31 +21,38 @@
         <div class="alerta alerta-error">${error}</div>
     <% } %>
 
-    <form action="${pageContext.request.contextPath}/registro" method="post">
+    <form action="${pageContext.request.contextPath}/registro" method="post"
+          onsubmit="return validarFormulario(event)">
         <div class="form-row">
             <div class="form-grupo">
                 <label>Nombres *</label>
-                <input type="text" name="nombres" class="form-control" required placeholder="Ej: María Fernanda">
+                <input type="text" name="nombres" class="form-control" required placeholder="Ej: María Fernanda"
+                       onkeydown="bloquearTecladoNumerico(event)" oninput="permitirSoloLetras(this)">
             </div>
             <div class="form-grupo">
                 <label>Apellidos *</label>
-                <input type="text" name="apellidos" class="form-control" required placeholder="Ej: García López">
+                <input type="text" name="apellidos" class="form-control" required placeholder="Ej: García López"
+                       onkeydown="bloquearTecladoNumerico(event)" oninput="permitirSoloLetras(this)">
             </div>
         </div>
         <div class="form-row">
             <div class="form-grupo">
                 <label>Cédula Ecuatoriana *</label>
-                <input type="text" name="cedula" class="form-control" required maxlength="10"
-                       pattern="[0-9]{10}" title="10 dígitos numéricos" placeholder="0912345678">
+                <input type="text" name="cedula" id="cedula" class="form-control" required maxlength="10"
+                       pattern="[0-9]{10}" title="10 dígitos numéricos" placeholder="0912345678"
+                       onkeydown="bloquearTecladoAlfabetico(event)" oninput="permitirSoloNumeros(this, 10)">
             </div>
             <div class="form-grupo">
                 <label>Teléfono</label>
-                <input type="text" name="telefono" class="form-control" placeholder="Ej: 0991234567">
+                <input type="text" name="telefono" id="telefono" class="form-control"
+                       placeholder="Ej: 0991234567" maxlength="10"
+                       onkeydown="bloquearTecladoAlfabetico(event)" oninput="permitirSoloNumeros(this, 10)">
             </div>
         </div>
         <div class="form-grupo">
             <label>Correo Electrónico</label>
-            <input type="email" name="correo" class="form-control" placeholder="correo@ejemplo.com">
+            <input type="email" name="correo" id="correo" class="form-control"
+                   placeholder="correo@ejemplo.com" onkeydown="bloquearCaracteresCorreo(event)">
         </div>
         <div class="form-grupo">
             <label>Dirección</label>
@@ -70,5 +77,6 @@
     </form>
 </div>
 </div>
+<script src="${pageContext.request.contextPath}/js/validacionCliente.js"></script>
 </body>
 </html>

@@ -1,8 +1,12 @@
 package ec.edu.monster.restaurante.controlador;
 
 import ec.edu.monster.restaurante.dao.CategoriaDAO;
+import ec.edu.monster.restaurante.dao.ClienteDAO;
+import ec.edu.monster.restaurante.dao.PedidoDAO;
 import ec.edu.monster.restaurante.dao.PlatoDAO;
 import ec.edu.monster.restaurante.modelo.Categoria;
+import ec.edu.monster.restaurante.modelo.Cliente;
+import ec.edu.monster.restaurante.modelo.Pedido;
 import ec.edu.monster.restaurante.modelo.Plato;
 import ec.edu.monster.restaurante.modelo.Usuario;
 import jakarta.servlet.ServletException;
@@ -28,12 +32,27 @@ public class MenuServlet extends HttpServlet {
             return;
         }
 
+        // Asegurar cliente en sesión
+        Cliente cliente = (Cliente) session.getAttribute("cliente");
+        if (cliente == null) {
+            cliente = new ClienteDAO().buscarPorIdUsuario(u.getId());
+            session.setAttribute("cliente", cliente);
+        }
+
         List<Categoria> categorias = new CategoriaDAO().listar();
         PlatoDAO pDao = new PlatoDAO();
 
         Map<Integer, List<Plato>> platosPorCategoria = new LinkedHashMap<>();
         for (Categoria cat : categorias) {
             platosPorCategoria.put(cat.getId(), pDao.listarPorCategoria(cat.getId()));
+        }
+
+        // Buscar pedido pendiente para informar al cliente
+        if (cliente != null) {
+            Pedido pendiente = new PedidoDAO().buscarPendientePorCliente(cliente.getId());
+            if (pendiente != null) {
+                req.setAttribute("pedidoPendiente", pendiente);
+            }
         }
 
         req.setAttribute("categorias", categorias);
