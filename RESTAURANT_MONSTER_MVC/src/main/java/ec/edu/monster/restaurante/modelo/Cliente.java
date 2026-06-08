@@ -12,6 +12,7 @@ public class Cliente implements Serializable {
     private String correo;
     private String telefono;
     private int idUsuario;
+    private int activo;
 
     public Cliente() {}
 
@@ -38,6 +39,9 @@ public class Cliente implements Serializable {
 
     public int getIdUsuario()              { return idUsuario; }
     public void setIdUsuario(int u)        { this.idUsuario = u; }
+
+    public int getActivo()                 { return activo; }
+    public void setActivo(int a)           { this.activo = a; }
 
     public String getNombreCompleto()      { return nombres + " " + apellidos; }
 }

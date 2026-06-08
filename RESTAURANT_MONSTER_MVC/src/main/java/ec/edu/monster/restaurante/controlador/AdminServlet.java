@@ -33,9 +33,13 @@ public class AdminServlet extends HttpServlet {
             case "eliminarPlato":  eliminarPlato(req, resp);          break;
             case "activarPlato":   activarPlato(req, resp);           break;
             case "formCliente":    formCliente(req, resp);            break;
+            case "editarCliente":  editarCliente(req, resp);          break;
             case "formEmpleado":   formEmpleado(req, resp);           break;
-            case "listarClientes": listarClientes(req, resp);         break;
-            case "listarEmpleados":listarEmpleados(req, resp);        break;
+            case "editarEmpleado": editarEmpleado(req, resp);         break;
+            case "listarClientes":   listarClientes(req, resp);         break;
+            case "listarEmpleados":  listarEmpleados(req, resp);        break;
+            case "toggleCliente":    toggleCliente(req, resp);          break;
+            case "toggleEmpleado":   toggleEmpleado(req, resp);         break;
             
             default:               req.getRequestDispatcher("/vistas/admin/dashboard.jsp").forward(req, resp);
         }
@@ -51,9 +55,11 @@ public class AdminServlet extends HttpServlet {
         if (accion == null) accion = "";
 
         switch (accion) {
-            case "guardarPlato":    guardarPlato(req, resp);    break;
-            case "registrarCliente":registrarCliente(req, resp);break;
-            case "registrarEmpleado":registrarEmpleado(req, resp);break;
+            case "guardarPlato":       guardarPlato(req, resp);        break;
+            case "registrarCliente":   registrarCliente(req, resp);    break;
+            case "actualizarCliente":  actualizarCliente(req, resp);   break;
+            case "registrarEmpleado":  registrarEmpleado(req, resp);   break;
+            case "actualizarEmpleado": actualizarEmpleado(req, resp);  break;
             default: resp.sendRedirect("admin");
         }
     }
@@ -183,6 +189,46 @@ public class AdminServlet extends HttpServlet {
         req.getRequestDispatcher("/vistas/admin/registrar-cliente.jsp").forward(req, resp);
     }
 
+    private void editarCliente(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        int id = Integer.parseInt(req.getParameter("id"));
+        Cliente c = new ClienteDAO().buscarPorId(id);
+        if (c == null) { resp.sendRedirect("admin?accion=listarClientes"); return; }
+        req.setAttribute("cliente", c);
+        req.setAttribute("usuarioEditar", new UsuarioDAO().buscarPorId(c.getIdUsuario()));
+        req.getRequestDispatcher("/vistas/admin/registrar-cliente.jsp").forward(req, resp);
+    }
+
+    private void actualizarCliente(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        int id        = Integer.parseInt(req.getParameter("id"));
+        int idUsuario = Integer.parseInt(req.getParameter("idUsuario"));
+        String username = req.getParameter("username").trim();
+        UsuarioDAO uDao = new UsuarioDAO();
+
+        if (uDao.existeUsernameExcluyendo(username, idUsuario)) {
+            ClienteDAO cDao = new ClienteDAO();
+            Cliente c = cDao.buscarPorId(id);
+            req.setAttribute("cliente", c);
+            req.setAttribute("usuarioEditar", uDao.buscarPorId(idUsuario));
+            req.setAttribute("error", "El nombre de usuario ya existe.");
+            req.getRequestDispatcher("/vistas/admin/registrar-cliente.jsp").forward(req, resp);
+            return;
+        }
+
+        Cliente c = new Cliente();
+        c.setId(id);
+        c.setNombres(req.getParameter("nombres").trim());
+        c.setApellidos(req.getParameter("apellidos").trim());
+        c.setDireccion(req.getParameter("direccion").trim());
+        c.setCorreo(req.getParameter("correo").trim());
+        c.setTelefono(req.getParameter("telefono").trim());
+        new ClienteDAO().actualizar(c);
+        uDao.actualizarCredenciales(idUsuario, username, req.getParameter("password").trim());
+
+        resp.sendRedirect("admin?accion=listarClientes&editado=1");
+    }
+
     private void listarClientes(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         req.setAttribute("clientes", new ClienteDAO().listar());
@@ -229,6 +275,47 @@ public class AdminServlet extends HttpServlet {
         req.getRequestDispatcher("/vistas/admin/registrar-empleado.jsp").forward(req, resp);
     }
 
+    private void editarEmpleado(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        int id = Integer.parseInt(req.getParameter("id"));
+        Empleado e = new EmpleadoDAO().buscarPorId(id);
+        if (e == null) { resp.sendRedirect("admin?accion=listarEmpleados"); return; }
+        req.setAttribute("empleado", e);
+        req.setAttribute("usuarioEditar", new UsuarioDAO().buscarPorId(e.getIdUsuario()));
+        req.getRequestDispatcher("/vistas/admin/registrar-empleado.jsp").forward(req, resp);
+    }
+
+    private void actualizarEmpleado(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        int id        = Integer.parseInt(req.getParameter("id"));
+        int idUsuario = Integer.parseInt(req.getParameter("idUsuario"));
+        String username = req.getParameter("username").trim();
+        UsuarioDAO uDao   = new UsuarioDAO();
+        EmpleadoDAO eDao  = new EmpleadoDAO();
+
+        if (uDao.existeUsernameExcluyendo(username, idUsuario)) {
+            Empleado e = eDao.buscarPorId(id);
+            req.setAttribute("empleado", e);
+            req.setAttribute("usuarioEditar", uDao.buscarPorId(idUsuario));
+            req.setAttribute("error", "El nombre de usuario ya existe.");
+            req.getRequestDispatcher("/vistas/admin/registrar-empleado.jsp").forward(req, resp);
+            return;
+        }
+
+        Empleado e = new Empleado();
+        e.setId(id);
+        e.setNombres(req.getParameter("nombres").trim());
+        e.setApellidos(req.getParameter("apellidos").trim());
+        e.setCargo(req.getParameter("cargo").trim());
+        e.setTelefono(req.getParameter("telefono").trim());
+        e.setCorreo(req.getParameter("correo").trim());
+        e.setFechaIngreso(req.getParameter("fechaIngreso").trim());
+        eDao.actualizar(e);
+        uDao.actualizarCredenciales(idUsuario, username, req.getParameter("password").trim());
+
+        resp.sendRedirect("admin?accion=listarEmpleados&editado=1");
+    }
+
     private void listarEmpleados(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         req.setAttribute("empleados", new EmpleadoDAO().listar());
@@ -266,6 +353,20 @@ public class AdminServlet extends HttpServlet {
         eDao.insertar(e);
 
         resp.sendRedirect("admin?accion=listarEmpleados&ok=1");
+    }
+
+    private void toggleCliente(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        int idUsuario = Integer.parseInt(req.getParameter("idUsuario"));
+        new UsuarioDAO().toggleActivo(idUsuario);
+        resp.sendRedirect("admin?accion=listarClientes");
+    }
+
+    private void toggleEmpleado(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        int idUsuario = Integer.parseInt(req.getParameter("idUsuario"));
+        new UsuarioDAO().toggleActivo(idUsuario);
+        resp.sendRedirect("admin?accion=listarEmpleados");
     }
 
     private boolean tieneAcceso(HttpServletRequest req, String perfil) {

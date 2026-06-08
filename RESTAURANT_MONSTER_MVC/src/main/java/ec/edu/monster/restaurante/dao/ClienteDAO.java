@@ -17,12 +17,13 @@ public class ClienteDAO {
         c.setCorreo(rs.getString("correo"));
         c.setTelefono(rs.getString("telefono"));
         c.setIdUsuario(rs.getInt("id_usuario"));
+        try { c.setActivo(rs.getInt("activo")); } catch (SQLException ignored) {}
         return c;
     }
 
     public List<Cliente> listar() {
         List<Cliente> lista = new ArrayList<>();
-        String sql = "SELECT * FROM clientes ORDER BY apellidos, nombres";
+        String sql = "SELECT c.*, u.activo FROM clientes c JOIN usuarios u ON c.id_usuario = u.id ORDER BY c.apellidos, c.nombres";
         try (Connection cn = ConexionDB.obtener();
              PreparedStatement ps = cn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -75,6 +76,21 @@ public class ClienteDAO {
             ps.setString(5, c.getCorreo());
             ps.setString(6, c.getTelefono());
             ps.setInt(7, c.getIdUsuario());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) { e.printStackTrace(); }
+        return false;
+    }
+
+    public boolean actualizar(Cliente c) {
+        String sql = "UPDATE clientes SET nombres=?,apellidos=?,direccion=?,correo=?,telefono=? WHERE id=?";
+        try (Connection cn = ConexionDB.obtener();
+             PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, c.getNombres());
+            ps.setString(2, c.getApellidos());
+            ps.setString(3, c.getDireccion());
+            ps.setString(4, c.getCorreo());
+            ps.setString(5, c.getTelefono());
+            ps.setInt(6, c.getId());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) { e.printStackTrace(); }
         return false;
