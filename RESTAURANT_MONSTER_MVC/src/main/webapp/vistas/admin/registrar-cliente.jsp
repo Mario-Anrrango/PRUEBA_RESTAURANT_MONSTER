@@ -44,33 +44,44 @@
                         <label>Nombres *</label>
                         <input type="text" name="nombres" class="form-control" 
                                required placeholder="Ej: Juan Carlos"
-                               oninput="permitirSoloLetras(this)">
+                               maxlength="50"
+                               onkeydown="bloquearTecladoNumerico(event)">
                     </div>
                     <div class="form-grupo">
                         <label>Apellidos *</label>
                         <input type="text" name="apellidos" class="form-control" 
                                required placeholder="Ej: Pérez Mora"
-                               oninput="permitirSoloLetras(this)">
+                               maxlength="50"
+                               onkeydown="bloquearTecladoNumerico(event)">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-grupo">
-                        <label>Cédula Ecuatoriana *</label>
-                        <input type="text" name="cedula" id="cedula" class="form-control" required maxlength="10"
-                               pattern="[0-9]{10}" title="10 dígitos" placeholder="0912345678">
+                        <label>Cédula: *</label>
+                        <input type="text" name="cedula" id="cedula" class="form-control" 
+                               required maxlength="10"
+                               pattern="[0-9]{10}" title="10 dígitos" 
+                               placeholder="Ingrese su cédula"
+                               onkeydown="bloquearTecladoAlfabetico(event)">
                     </div>
                     <div class="form-grupo">
                         <label>Teléfono</label>
-                        <input type="text" name="telefono" id="telefono" class="form-control" placeholder="0991234567">
+                        <input type="text" name="telefono" id="telefono" class="form-control" 
+                               placeholder="0991234567"
+                               maxlength="10"
+                               onkeydown="bloquearTecladoAlfabetico(event)">
                     </div>
                 </div>
                 <div class="form-grupo">
                     <label>Correo Electrónico</label>
-                    <input type="email" name="correo" id="correo" class="form-control" placeholder="correo@ejemplo.com">
+                    <input type="email" name="correo" id="correo" class="form-control" 
+                           placeholder="correo@ejemplo.com">
                 </div>
                 <div class="form-grupo">
                     <label>Dirección</label>
-                    <input type="text" name="direccion" class="form-control" placeholder="Calle, número, ciudad">
+                    <input type="text" name="direccion" class="form-control" 
+                           placeholder="Calle, número, ciudad"
+                           maxlength="100">
                 </div>
                 <hr style="margin:20px 0;border-color:var(--borde);">
                 <h3 style="font-family:'Playfair Display',serif;color:var(--marron);margin-bottom:15px;">Credenciales de acceso</h3>
@@ -91,6 +102,6 @@
             </form>
         </div>
 
-        <script src="${pageContext.request.contextPath}/js/validaciones.js"></script>
+        <script src="${pageContext.request.contextPath}/js/validacionCliente.js"></script>
     </body>
 </html>

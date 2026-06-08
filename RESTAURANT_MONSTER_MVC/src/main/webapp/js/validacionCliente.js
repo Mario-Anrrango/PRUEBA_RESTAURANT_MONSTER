@@ -62,3 +62,46 @@ function validarCedulaEcuatoriana(cedula) {
 function permitirSoloLetras(input) {
     input.value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
 }
+
+function bloquearTecladoNumerico(evento) {
+    const tecla = evento.key;
+
+    if (tecla.length === 1) {
+        const regexLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+        
+        if (!regexLetras.test(tecla)) {
+            evento.preventDefault();
+        }
+    }
+}
+
+function bloquearTecladoAlfabetico(evento) {
+    // Obtenemos la tecla presionada
+    const tecla = evento.key;
+
+    // Evaluamos solo los caracteres imprimibles (dejamos pasar Backspace, Tab, etc.)
+    if (tecla.length === 1) {
+        // La expresión regular solo permite números del 0 al 9
+        const regexNumeros = /^[0-9]+$/;
+        
+        if (!regexNumeros.test(tecla)) {
+            // Si teclean una letra, espacio o símbolo, bloqueamos el teclado
+            evento.preventDefault();
+        }
+    }
+}
+
+function bloquearCaracteresCorreo(evento) {
+    // Obtenemos la tecla presionada
+    const tecla = evento.key;
+
+    if (tecla.length === 1) {
+        // La expresión regular permite: letras (sin tildes), números, arroba, punto, guion medio y guion bajo
+        const regexCorreo = /^[a-zA-Z0-9@.\-_]+$/;
+        
+        if (!regexCorreo.test(tecla)) {
+            // Si intentan teclear un espacio, una tilde o un símbolo inválido, lo bloqueamos
+            evento.preventDefault();
+        }
+    }
+}
