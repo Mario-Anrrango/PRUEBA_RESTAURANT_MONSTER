@@ -6,16 +6,16 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @WebServlet("/empleado/tomar-pedido")
 public class TomarPedidoServlet extends HttpServlet {
 
-    private static final double IVA_PCT      = 0.15;
-    private static final double SERVICIO_PCT = 0.10;
+    private static final BigDecimal IVA_PCT      = new BigDecimal("0.15");
+    private static final BigDecimal SERVICIO_PCT = new BigDecimal("0.10");
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -27,13 +27,14 @@ public class TomarPedidoServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/login"); return;
         }
 
-        int idCliente = Integer.parseInt(req.getParameter("idCliente"));
+        String idCliente = req.getParameter("idCliente");
+        if (idCliente == null) { resp.sendRedirect(req.getContextPath() + "/empleado"); return; }
         Cliente cliente = new ClienteDAO().buscarPorId(idCliente);
         if (cliente == null) { resp.sendRedirect(req.getContextPath() + "/empleado"); return; }
 
         List<Categoria> categorias = new CategoriaDAO().listar();
         PlatoDAO pDao = new PlatoDAO();
-        Map<Integer, List<Plato>> platosPorCategoria = new LinkedHashMap<>();
+        Map<String, List<Plato>> platosPorCategoria = new LinkedHashMap<>();
         for (Categoria cat : categorias) {
             platosPorCategoria.put(cat.getId(), pDao.listarPorCategoria(cat.getId()));
         }
@@ -56,7 +57,7 @@ public class TomarPedidoServlet extends HttpServlet {
         }
 
         Empleado empleado = (Empleado) session.getAttribute("empleado");
-        int idCliente = Integer.parseInt(req.getParameter("idCliente"));
+        String idCliente = req.getParameter("idCliente");
 
         String[] platosSeleccionados = req.getParameterValues("platos");
         if (platosSeleccionados == null || platosSeleccionados.length == 0) {
@@ -66,47 +67,43 @@ public class TomarPedidoServlet extends HttpServlet {
 
         PlatoDAO platoDao = new PlatoDAO();
         List<DetallePedido> detalles = new ArrayList<>();
-        double subtotal = 0;
+        BigDecimal subtotal = BigDecimal.ZERO;
 
         for (String idPlatoStr : platosSeleccionados) {
-            int idPlato = Integer.parseInt(idPlatoStr);
-            String cantStr = req.getParameter("cantidad_" + idPlato);
+            String cantStr = req.getParameter("cantidad_" + idPlatoStr);
             int cantidad = (cantStr != null && !cantStr.isEmpty()) ? Integer.parseInt(cantStr) : 1;
             if (cantidad < 1) cantidad = 1;
 
-            Plato plato = platoDao.buscarPorId(idPlato);
+            Plato plato = platoDao.buscarPorId(idPlatoStr);
             if (plato != null) {
                 DetallePedido d = new DetallePedido();
-                d.setIdPlato(idPlato);
+                d.setIdPlato(idPlatoStr);
                 d.setNombrePlato(plato.getNombre());
                 d.setCategoriaPlato(plato.getNombreCategoria());
                 d.setCantidad(cantidad);
                 d.setPrecioUnitario(plato.getPrecio());
                 detalles.add(d);
-                subtotal += plato.getPrecio() * cantidad;
+                subtotal = subtotal.add(plato.getPrecio().multiply(BigDecimal.valueOf(cantidad)));
             }
         }
 
-        double iva      = subtotal * IVA_PCT;
-        double servicio = subtotal * SERVICIO_PCT;
-        double total    = subtotal + iva + servicio;
+        BigDecimal iva      = subtotal.multiply(IVA_PCT);
+        BigDecimal servicio = subtotal.multiply(SERVICIO_PCT);
+        BigDecimal total    = subtotal.add(iva).add(servicio);
 
         Pedido pedido = new Pedido();
         pedido.setIdCliente(idCliente);
         if (empleado != null) pedido.setIdEmpleado(empleado.getId());
-        pedido.setFecha(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-        pedido.setHora(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+        pedido.setFecha(LocalDate.now());
+        pedido.setHora(LocalTime.now());
         pedido.setSubtotal(subtotal);
         pedido.setIva(iva);
         pedido.setServicio(servicio);
         pedido.setTotal(total);
+        pedido.setDetalles(detalles);
 
         PedidoDAO pDao = new PedidoDAO();
-        int idPedido = pDao.insertar(pedido);
-        for (DetallePedido d : detalles) {
-            d.setIdPedido(idPedido);
-            pDao.insertarDetalle(d);
-        }
+        String idPedido = pDao.insertar(pedido);
 
         resp.sendRedirect(req.getContextPath() + "/factura?id=" + idPedido);
     }

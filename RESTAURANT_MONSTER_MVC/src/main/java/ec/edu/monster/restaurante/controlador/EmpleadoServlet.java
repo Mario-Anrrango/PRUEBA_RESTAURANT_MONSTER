@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.time.LocalDate;
 
 @WebServlet("/empleado")
 public class EmpleadoServlet extends HttpServlet {
@@ -78,7 +79,7 @@ public class EmpleadoServlet extends HttpServlet {
             return;
         }
 
-        int idUsr = uDao.insertar(username, req.getParameter("password").trim(), "CLIENTE");
+        String idUsr = uDao.insertar(username, req.getParameter("password").trim(), "CLIENTE");
         Cliente c = new Cliente();
         c.setNombres(req.getParameter("nombres").trim());
         c.setApellidos(req.getParameter("apellidos").trim());

@@ -1,58 +1,72 @@
 package ec.edu.monster.restaurante.dao;
 
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.result.InsertOneResult;
 import ec.edu.monster.restaurante.modelo.Usuario;
-import java.sql.*;
+import org.bson.Document;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UsuarioDAO {
 
-    public Usuario autenticar(String username, String password) {
-        String sql = "SELECT * FROM usuarios WHERE username = ? AND password = ? AND activo = 1";
-        try (Connection cn = ConexionDB.obtener();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
-            ps.setString(1, username);
-            ps.setString(2, password);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                Usuario u = new Usuario();
-                u.setId(rs.getInt("id"));
-                u.setUsername(rs.getString("username"));
-                u.setPassword(rs.getString("password"));
-                u.setPerfil(rs.getString("perfil"));
-                u.setActivo(rs.getInt("activo"));
-                return u;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
+    private MongoCollection<Document> collection;
+
+    public UsuarioDAO() {
+        MongoDatabase db = MongoDBConnection.getDatabase();
+        collection = db.getCollection("usuarios");
     }
 
-    public int insertar(String username, String password, String perfil) {
-        String sql = "INSERT INTO usuarios (username, password, perfil) VALUES (?,?,?)";
-        try (Connection cn = ConexionDB.obtener();
-             PreparedStatement ps = cn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, username);
-            ps.setString(2, password);
-            ps.setString(3, perfil);
-            ps.executeUpdate();
-            ResultSet rs = ps.getGeneratedKeys();
-            if (rs.next()) return rs.getInt(1);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return -1;
+    public Usuario autenticar(String username, String password) {
+        Document doc = collection.find(
+            Filters.and(
+                Filters.eq("username", username),
+                Filters.eq("password", password),
+                Filters.eq("activo", true)
+            )
+        ).first();
+        return doc != null ? mapearUsuario(doc) : null;
+    }
+
+    public Usuario buscarPorId(String id) {
+        Document doc = collection.find(MongoDBConnection.filterById(id)).first();
+        return doc != null ? mapearUsuario(doc) : null;
+    }
+
+    public String insertar(String username, String password, String perfil) {
+        Document doc = new Document()
+            .append("username", username)
+            .append("password", password)
+            .append("perfil", perfil)
+            .append("activo", true)
+            .append("created_at", LocalDateTime.now().toString());
+
+        InsertOneResult result = collection.insertOne(doc);
+        return result.getInsertedId().asObjectId().getValue().toHexString();
     }
 
     public boolean existeUsername(String username) {
-        String sql = "SELECT id FROM usuarios WHERE username = ?";
-        try (Connection cn = ConexionDB.obtener();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
-            ps.setString(1, username);
-            ResultSet rs = ps.executeQuery();
-            return rs.next();
-        } catch (SQLException e) {
-            e.printStackTrace();
+        return collection.find(Filters.eq("username", username)).first() != null;
+    }
+
+    public List<Usuario> listarTodos() {
+        List<Usuario> lista = new ArrayList<>();
+        for (Document doc : collection.find()) {
+            lista.add(mapearUsuario(doc));
         }
-        return false;
+        return lista;
+    }
+
+    private Usuario mapearUsuario(Document doc) {
+        Usuario u = new Usuario();
+        u.setId(MongoDBConnection.extractId(doc));
+        u.setUsername(doc.getString("username"));
+        u.setPassword(doc.getString("password"));
+        u.setPerfil(doc.getString("perfil"));
+        u.setActivo(doc.getBoolean("activo", false));
+        u.setCreated_at(MongoDBConnection.toLocalDateTime(doc.getDate("created_at")));
+        return u;
     }
 }

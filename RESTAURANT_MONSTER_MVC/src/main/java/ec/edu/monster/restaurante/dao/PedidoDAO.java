@@ -1,126 +1,153 @@
 package ec.edu.monster.restaurante.dao;
 
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import ec.edu.monster.restaurante.modelo.DetallePedido;
 import ec.edu.monster.restaurante.modelo.Pedido;
-import java.sql.*;
+import org.bson.Document;
+import org.bson.types.Decimal128;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PedidoDAO {
 
-    public int insertar(Pedido pedido) {
-        String sql = "INSERT INTO pedidos (id_cliente,id_empleado,fecha,hora,estado,subtotal,iva,servicio,total) VALUES (?,?,?,?,?,?,?,?,?)";
-        try (Connection cn = ConexionDB.obtener();
-             PreparedStatement ps = cn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setInt(1, pedido.getIdCliente());
-            if (pedido.getIdEmpleado() > 0) ps.setInt(2, pedido.getIdEmpleado());
-            else ps.setNull(2, Types.INTEGER);
-            ps.setString(3, pedido.getFecha());
-            ps.setString(4, pedido.getHora());
-            ps.setString(5, "PENDIENTE");
-            ps.setDouble(6, pedido.getSubtotal());
-            ps.setDouble(7, pedido.getIva());
-            ps.setDouble(8, pedido.getServicio());
-            ps.setDouble(9, pedido.getTotal());
-            ps.executeUpdate();
-            ResultSet rs = ps.getGeneratedKeys();
-            if (rs.next()) return rs.getInt(1);
-        } catch (SQLException e) { e.printStackTrace(); }
-        return -1;
+    private MongoCollection<Document> collection;
+
+    public PedidoDAO() {
+        MongoDatabase db = MongoDBConnection.getDatabase();
+        collection = db.getCollection("pedidos");
     }
 
-    public boolean insertarDetalle(DetallePedido d) {
-        String sql = "INSERT INTO detalle_pedido (id_pedido,id_plato,cantidad,precio_unitario) VALUES (?,?,?,?)";
-        try (Connection cn = ConexionDB.obtener();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
-            ps.setInt(1, d.getIdPedido());
-            ps.setInt(2, d.getIdPlato());
-            ps.setInt(3, d.getCantidad());
-            ps.setDouble(4, d.getPrecioUnitario());
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) { e.printStackTrace(); }
-        return false;
-    }
-
-    public Pedido buscarPorId(int id) {
-        String sql = "SELECT p.*, c.nombres, c.apellidos, c.cedula, c.correo, c.telefono " +
-                     "FROM pedidos p JOIN clientes c ON p.id_cliente=c.id WHERE p.id=?";
-        try (Connection cn = ConexionDB.obtener();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                Pedido ped = new Pedido();
-                ped.setId(rs.getInt("id"));
-                ped.setIdCliente(rs.getInt("id_cliente"));
-                ped.setNombreCliente(rs.getString("nombres") + " " + rs.getString("apellidos"));
-                ped.setCedulaCliente(rs.getString("cedula"));
-                ped.setCorreoCliente(rs.getString("correo"));
-                ped.setTelefonoCliente(rs.getString("telefono"));
-                ped.setFecha(rs.getString("fecha"));
-                ped.setHora(rs.getString("hora"));
-                ped.setEstado(rs.getString("estado"));
-                ped.setSubtotal(rs.getDouble("subtotal"));
-                ped.setIva(rs.getDouble("iva"));
-                ped.setServicio(rs.getDouble("servicio"));
-                ped.setTotal(rs.getDouble("total"));
-                ped.setDetalles(listarDetalles(id));
-                return ped;
+    public String insertar(Pedido pedido) {
+        List<Document> detallesDoc = new ArrayList<>();
+        if (pedido.getDetalles() != null) {
+            for (DetallePedido d : pedido.getDetalles()) {
+                Document detDoc = new Document()
+                    .append("id_plato", d.getIdPlato())
+                    .append("nombre", d.getNombrePlato())
+                    .append("categoria", d.getCategoriaPlato())
+                    .append("cantidad", d.getCantidad())
+                    .append("precio_unitario", d.getPrecioUnitario() != null
+                        ? new Decimal128(d.getPrecioUnitario())
+                        : new Decimal128(BigDecimal.ZERO));
+                detallesDoc.add(detDoc);
             }
-        } catch (SQLException e) { e.printStackTrace(); }
-        return null;
+        }
+
+        Document doc = new Document()
+            .append("id_cliente", pedido.getIdCliente())
+            .append("id_empleado", pedido.getIdEmpleado())
+            .append("fecha", pedido.getFecha() != null ? pedido.getFecha().toString() : null)
+            .append("hora", pedido.getHora() != null ? pedido.getHora().toString() : null)
+            .append("estado", "PENDIENTE")
+            .append("subtotal", pedido.getSubtotal() != null
+                ? new Decimal128(pedido.getSubtotal())
+                : new Decimal128(BigDecimal.ZERO))
+            .append("iva", pedido.getIva() != null
+                ? new Decimal128(pedido.getIva())
+                : new Decimal128(BigDecimal.ZERO))
+            .append("servicio", pedido.getServicio() != null
+                ? new Decimal128(pedido.getServicio())
+                : new Decimal128(BigDecimal.ZERO))
+            .append("total", pedido.getTotal() != null
+                ? new Decimal128(pedido.getTotal())
+                : new Decimal128(BigDecimal.ZERO))
+            .append("detalles", detallesDoc);
+
+        return collection.insertOne(doc).getInsertedId().asObjectId().getValue().toHexString();
     }
 
-    public List<DetallePedido> listarDetalles(int idPedido) {
-        List<DetallePedido> lista = new ArrayList<>();
-        String sql = "SELECT dp.*, pl.nombre AS nombre_plato, c.nombre AS cat FROM detalle_pedido dp " +
-                     "JOIN platos pl ON dp.id_plato=pl.id JOIN categorias c ON pl.id_categoria=c.id WHERE dp.id_pedido=?";
-        try (Connection cn = ConexionDB.obtener();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
-            ps.setInt(1, idPedido);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                DetallePedido d = new DetallePedido();
-                d.setId(rs.getInt("id"));
-                d.setIdPedido(rs.getInt("id_pedido"));
-                d.setIdPlato(rs.getInt("id_plato"));
-                d.setNombrePlato(rs.getString("nombre_plato"));
-                d.setCategoriaPlato(rs.getString("cat"));
-                d.setCantidad(rs.getInt("cantidad"));
-                d.setPrecioUnitario(rs.getDouble("precio_unitario"));
-                lista.add(d);
-            }
-        } catch (SQLException e) { e.printStackTrace(); }
-        return lista;
+    public Pedido buscarPorId(String id) {
+        Document doc = collection.find(MongoDBConnection.filterById(id)).first();
+        return doc != null ? mapearPedido(doc) : null;
     }
 
-    public boolean marcarPagado(int idPedido) {
-        String sql = "UPDATE pedidos SET estado='PAGADO' WHERE id=?";
-        try (Connection cn = ConexionDB.obtener();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
-            ps.setInt(1, idPedido);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) { e.printStackTrace(); }
-        return false;
-    }
-
-    public List<Pedido> listarPorCliente(int idCliente) {
+    public List<Pedido> listarPorCliente(String idCliente) {
         List<Pedido> lista = new ArrayList<>();
-        String sql = "SELECT * FROM pedidos WHERE id_cliente=? ORDER BY fecha DESC, hora DESC";
-        try (Connection cn = ConexionDB.obtener();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
-            ps.setInt(1, idCliente);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                Pedido p = new Pedido();
-                p.setId(rs.getInt("id"));
-                p.setFecha(rs.getString("fecha"));
-                p.setHora(rs.getString("hora"));
-                p.setEstado(rs.getString("estado"));
-                p.setTotal(rs.getDouble("total"));
-                lista.add(p);
-            }
-        } catch (SQLException e) { e.printStackTrace(); }
+        for (Document doc : collection.find(Filters.eq("id_cliente", idCliente))
+                .sort(new Document("fecha", -1).append("hora", -1))) {
+            lista.add(mapearPedidoResumen(doc));
+        }
         return lista;
+    }
+
+    public List<Pedido> listarTodos() {
+        List<Pedido> lista = new ArrayList<>();
+        for (Document doc : collection.find()) {
+            lista.add(mapearPedido(doc));
+        }
+        return lista;
+    }
+
+    public boolean marcarPagado(String idPedido) {
+        return collection.updateOne(
+            MongoDBConnection.filterById(idPedido),
+            new Document("$set", new Document("estado", "PAGADO"))
+        ).getModifiedCount() > 0;
+    }
+
+    private Pedido mapearPedido(Document doc) {
+        Pedido p = new Pedido();
+        p.setId(MongoDBConnection.extractId(doc));
+        p.setIdCliente(doc.getString("id_cliente"));
+        p.setIdEmpleado(doc.getString("id_empleado"));
+        String fechaStr = MongoDBConnection.extractString(doc, "fecha");
+        if (fechaStr != null && !fechaStr.equals("null")) {
+            p.setFecha(LocalDate.parse(fechaStr));
+        }
+        String horaStr = MongoDBConnection.extractString(doc, "hora");
+        if (horaStr != null && !horaStr.equals("null")) {
+            p.setHora(LocalTime.parse(horaStr));
+        }
+        p.setEstado(doc.getString("estado"));
+        p.setSubtotal(extraerDecimal(doc, "subtotal"));
+        p.setIva(extraerDecimal(doc, "iva"));
+        p.setServicio(extraerDecimal(doc, "servicio"));
+        p.setTotal(extraerDecimal(doc, "total"));
+
+        List<DetallePedido> detalles = new ArrayList<>();
+        List<Document> detallesDoc = doc.getList("detalles", Document.class);
+        if (detallesDoc != null) {
+            for (Document d : detallesDoc) {
+                DetallePedido det = new DetallePedido();
+                det.setIdPlato(d.getString("id_plato"));
+                det.setNombrePlato(d.getString("nombre"));
+                det.setCategoriaPlato(d.getString("categoria"));
+                det.setCantidad(d.getInteger("cantidad", 1));
+                det.setPrecioUnitario(extraerDecimal(d, "precio_unitario"));
+                detalles.add(det);
+            }
+        }
+        p.setDetalles(detalles);
+        return p;
+    }
+
+    private Pedido mapearPedidoResumen(Document doc) {
+        Pedido p = new Pedido();
+        p.setId(MongoDBConnection.extractId(doc));
+        String fechaStr = MongoDBConnection.extractString(doc, "fecha");
+        if (fechaStr != null && !fechaStr.equals("null")) {
+            p.setFecha(LocalDate.parse(fechaStr));
+        }
+        String horaStr = MongoDBConnection.extractString(doc, "hora");
+        if (horaStr != null && !horaStr.equals("null")) {
+            p.setHora(LocalTime.parse(horaStr));
+        }
+        p.setEstado(doc.getString("estado"));
+        p.setTotal(extraerDecimal(doc, "total"));
+        return p;
+    }
+
+    private BigDecimal extraerDecimal(Document doc, String campo) {
+        Object valor = doc.get(campo);
+        if (valor instanceof Decimal128) return ((Decimal128) valor).bigDecimalValue();
+        if (valor instanceof Double) return BigDecimal.valueOf((Double) valor);
+        if (valor instanceof Integer) return BigDecimal.valueOf((Integer) valor);
+        if (valor instanceof String) return new BigDecimal((String) valor);
+        return BigDecimal.ZERO;
     }
 }

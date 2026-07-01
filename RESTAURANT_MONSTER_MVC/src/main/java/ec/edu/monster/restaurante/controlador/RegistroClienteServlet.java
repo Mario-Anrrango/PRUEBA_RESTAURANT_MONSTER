@@ -45,8 +45,8 @@ public class RegistroClienteServlet extends HttpServlet {
             return;
         }
 
-        int idUsuario = uDao.insertar(username, password, "CLIENTE");
-        if (idUsuario < 0) {
+        String idUsuario = uDao.insertar(username, password, "CLIENTE");
+        if (idUsuario == null) {
             req.setAttribute("error", "Error al crear el usuario. Intente nuevamente.");
             req.getRequestDispatcher("/vistas/registro-cliente.jsp").forward(req, resp);
             return;

@@ -21,9 +21,9 @@ public class FacturaServlet extends HttpServlet {
         }
 
         String idStr = req.getParameter("id");
-        if (idStr == null) { resp.sendRedirect(req.getContextPath() + "/menu"); return; }
+        if (idStr == null || idStr.isEmpty()) { resp.sendRedirect(req.getContextPath() + "/menu"); return; }
 
-        Pedido pedido = new PedidoDAO().buscarPorId(Integer.parseInt(idStr));
+        Pedido pedido = new PedidoDAO().buscarPorId(idStr);
         if (pedido == null) { resp.sendRedirect(req.getContextPath() + "/menu"); return; }
 
         req.setAttribute("pedido", pedido);
@@ -34,8 +34,8 @@ public class FacturaServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         String idStr = req.getParameter("idPedido");
-        if (idStr != null) {
-            new PedidoDAO().marcarPagado(Integer.parseInt(idStr));
+        if (idStr != null && !idStr.isEmpty()) {
+            new PedidoDAO().marcarPagado(idStr);
         }
         resp.sendRedirect(req.getContextPath() + "/menu?pagado=1");
     }

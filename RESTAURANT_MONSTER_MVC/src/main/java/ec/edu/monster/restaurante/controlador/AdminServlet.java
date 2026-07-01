@@ -6,6 +6,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @WebServlet("/admin")
@@ -21,8 +23,8 @@ public class AdminServlet extends HttpServlet {
 
         switch (accion) {
             case "listarPlatos":   mostrarPlatos(req, resp);          break;
-            case "nuevoPlato":     mostrarFormPlato(req, resp, 0);    break;
-            case "editarPlato":    mostrarFormPlato(req, resp, Integer.parseInt(req.getParameter("id"))); break;
+            case "nuevoPlato":     mostrarFormPlato(req, resp, null);    break;
+            case "editarPlato":    mostrarFormPlato(req, resp, req.getParameter("id")); break;
             case "eliminarPlato":  eliminarPlato(req, resp);          break;
             case "formCliente":    formCliente(req, resp);            break;
             case "formEmpleado":   formEmpleado(req, resp);           break;
@@ -58,9 +60,9 @@ public class AdminServlet extends HttpServlet {
         req.getRequestDispatcher("/vistas/admin/gestion-platos.jsp").forward(req, resp);
     }
 
-    private void mostrarFormPlato(HttpServletRequest req, HttpServletResponse resp, int id)
+    private void mostrarFormPlato(HttpServletRequest req, HttpServletResponse resp, String id)
             throws ServletException, IOException {
-        Plato plato = (id > 0) ? new PlatoDAO().buscarPorId(id) : new Plato();
+        Plato plato = (id != null && !id.isEmpty()) ? new PlatoDAO().buscarPorId(id) : new Plato();
         req.setAttribute("plato", plato);
         req.setAttribute("categorias", new CategoriaDAO().listar());
         req.getRequestDispatcher("/vistas/admin/form-plato.jsp").forward(req, resp);
@@ -70,16 +72,16 @@ public class AdminServlet extends HttpServlet {
             throws IOException {
         Plato p = new Plato();
         String idStr = req.getParameter("id");
-        if (idStr != null && !idStr.isEmpty()) p.setId(Integer.parseInt(idStr));
+        if (idStr != null && !idStr.isEmpty()) p.setId(idStr);
         p.setNombre(req.getParameter("nombre").trim());
         p.setDescripcion(req.getParameter("descripcion").trim());
-        p.setPrecio(Double.parseDouble(req.getParameter("precio")));
+        p.setPrecio(new BigDecimal(req.getParameter("precio")));
         p.setFoto(req.getParameter("foto").trim());
-        p.setIdCategoria(Integer.parseInt(req.getParameter("idCategoria")));
-        p.setActivo(1);
+        p.setIdCategoria(req.getParameter("idCategoria"));
+        p.setActivo(true);
 
         PlatoDAO dao = new PlatoDAO();
-        if (p.getId() > 0) dao.actualizar(p);
+        if (idStr != null && !idStr.isEmpty()) dao.actualizar(p);
         else dao.insertar(p);
 
         resp.sendRedirect("admin?accion=listarPlatos&ok=1");
@@ -87,8 +89,10 @@ public class AdminServlet extends HttpServlet {
 
     private void eliminarPlato(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        int id = Integer.parseInt(req.getParameter("id"));
-        new PlatoDAO().eliminar(id);
+        String id = req.getParameter("id");
+        if (id != null && !id.isEmpty()) {
+            new PlatoDAO().eliminar(id);
+        }
         resp.sendRedirect("admin?accion=listarPlatos&eliminado=1");
     }
 
@@ -124,7 +128,7 @@ public class AdminServlet extends HttpServlet {
             return;
         }
 
-        int idUsr = uDao.insertar(username, req.getParameter("password").trim(), "CLIENTE");
+        String idUsr = uDao.insertar(username, req.getParameter("password").trim(), "CLIENTE");
         Cliente c = new Cliente();
         c.setNombres(req.getParameter("nombres").trim());
         c.setApellidos(req.getParameter("apellidos").trim());
@@ -169,7 +173,7 @@ public class AdminServlet extends HttpServlet {
             return;
         }
 
-        int idUsr = uDao.insertar(username, req.getParameter("password").trim(), "EMPLEADO");
+        String idUsr = uDao.insertar(username, req.getParameter("password").trim(), "EMPLEADO");
         Empleado e = new Empleado();
         e.setNombres(req.getParameter("nombres").trim());
         e.setApellidos(req.getParameter("apellidos").trim());
@@ -177,7 +181,7 @@ public class AdminServlet extends HttpServlet {
         e.setCargo(req.getParameter("cargo").trim());
         e.setTelefono(req.getParameter("telefono").trim());
         e.setCorreo(req.getParameter("correo").trim());
-        e.setFechaIngreso(req.getParameter("fechaIngreso").trim());
+        e.setFechaIngreso(LocalDate.parse(req.getParameter("fechaIngreso")));
         e.setIdUsuario(idUsr);
         eDao.insertar(e);
 

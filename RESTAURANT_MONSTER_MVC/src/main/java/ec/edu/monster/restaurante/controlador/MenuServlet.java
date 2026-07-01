@@ -31,7 +31,7 @@ public class MenuServlet extends HttpServlet {
         List<Categoria> categorias = new CategoriaDAO().listar();
         PlatoDAO pDao = new PlatoDAO();
 
-        Map<Integer, List<Plato>> platosPorCategoria = new LinkedHashMap<>();
+        Map<String, List<Plato>> platosPorCategoria = new LinkedHashMap<>();
         for (Categoria cat : categorias) {
             platosPorCategoria.put(cat.getId(), pDao.listarPorCategoria(cat.getId()));
         }
