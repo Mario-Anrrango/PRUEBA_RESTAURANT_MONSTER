@@ -37,3 +37,103 @@ textarea.error:focus {
     color: #c0392b;
     font-weight: 600;
 }
+
+/* ===== CÉDULA / EXTRANJERO ===== */
+.field-disabled {
+    background-color: #e9ecef !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.field-disabled[readonly] {
+    pointer-events: none;
+}
+
+.label-disabled {
+    color: #999 !important;
+}
+
+.valid-message {
+    color: #28a745;
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+    font-weight: 500;
+}
+
+/* ===== PASSWORD TOGGLE ===== */
+.password-wrapper {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 18px;
+    color: #666;
+    user-select: none;
+    background: none;
+    border: none;
+    padding: 4px;
+    line-height: 1;
+    z-index: 2;
+}
+
+.password-toggle:hover {
+    color: #333;
+}
+
+/* ===== CHECKBOX EXTRANJERO ===== */
+.checkbox-extranjero {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.checkbox-extranjero input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--marron);
+}
+.checkbox-extranjero label {
+    cursor: pointer;
+    font-size: 0.9em;
+    color: var(--texto);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* ===== VALIDATION MESSAGE DIVS (dedicados) ===== */
+.validation-message {
+    font-size: 12px;
+    margin-top: 4px;
+    min-height: 18px;
+    display: block;
+    font-weight: 500;
+}
+
+.validation-message.error {
+    color: #dc3545;
+}
+
+.validation-message.success {
+    color: #28a745;
+}
+
+/* ===== FLEX-HALF: ancho fijo 50% en form-row ===== */
+.form-grupo.flex-half {
+    flex: 0 0 calc(50% - 10px);
+    max-width: calc(50% - 10px);
+}
+
+@media (max-width: 768px) {
+    .form-grupo.flex-half {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}

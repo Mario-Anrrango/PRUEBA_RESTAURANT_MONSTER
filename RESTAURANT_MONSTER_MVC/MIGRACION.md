@@ -232,7 +232,58 @@ _Completada — scripts de test y corrección de errores_
 
 ### 6.14 Fase 6.4 — Correcciones Críticas Prioritarias ✅
 
-#### PROBLEMA 1 — Platos activos no aparecen en menú del cliente
+### 6.15 Fase 6.5 — Mejoras en Formulario de Registro de Cliente ✅
+
+#### Problemas Corregidos
+
+**1. Tamaño de campo Cédula** — Corregido: ahora ocupa el mismo ancho que identificación extranjera (50% del form-row)
+
+**2. Comportamiento checkbox "Soy Extranjero"** —
+- `extranjero.js`: toggleExtranjero() ahora agrega clase CSS `field-disabled` (gris/opaco) y `label-disabled` al label
+- Limpia errores (limpiarError) al alternar
+- Usa clases CSS en lugar de solo atributos `disabled`
+
+**3. Validaciones on blur con AJAX** — 8 nuevas funciones en validaciones.js:
+- `validarCedulaOnBlur()`: valida 10 dígitos, módulo 10 + AJAX existencia en BD
+- `validarIdentificacionOnBlur()`: valida 5-20 chars + AJAX existencia
+- `validarNombresOnBlur()`: mínimo 4 chars, solo letras
+- `validarApellidosOnBlur()`: mínimo 4 chars, solo letras
+- `validarTelefonoOnBlur()`: exactamente 10 dígitos
+- `validarUsuarioOnBlur()`: mínimo 4 chars, sin espacios + AJAX existencia
+- `validarCorreoOnBlur()`: formato email + AJAX existencia
+- `validarDireccionOnBlur()`: mínimo 10 chars
+
+**4. Dirección cambiada a textarea** — input text → textarea con:
+- `style="min-height:90px;resize:vertical;"` (~3-4 líneas)
+- Contador de caracteres vía `actualizarContador()`
+- onblur valida mínimo 10 caracteres
+
+**5. Botón "Ver" contraseña** — Agregado:
+- `password-wrapper` (position: relative)
+- Botón `password-toggle` con ícono 👁️ dentro del wrapper
+- `togglePasswordVisibility(id)`: alterna password/text y cambia ícono 👁️ ↔ 🙈
+
+**6. Validación de formulario completa** — `validarFormularioRegistro()`:
+- Deshabilita botón "Registrarme" durante envío
+- Valida TODOS los campos antes de enviar
+- Si hay errores, muestra SweetAlert con lista
+- Previene envío duplicado
+
+**7. AJAX endpoints en Servlet** — `RegistroClienteServlet.doGet()`:
+- `?accion=validarCedula&cedula=XXX` → JSON {valid, message}
+- `?accion=validarIdentificacion&id=XXX` → JSON {valid, message}
+- `?accion=validarUsuario&usuario=XXX` → JSON {valid, message}
+- `?accion=validarCorreo&correo=XXX` → JSON {valid, message}
+
+#### Archivos Modificados
+- `registro-cliente.jsp` — formulario completo reescrito
+- `RegistroClienteServlet.java` — doGet con AJAX endpoints + validadores
+- `validaciones.js` — 8 nuevas funciones de validación on blur + AJAX + pre-submit
+- `extranjero.js` — visual disabled state con clases CSS
+- `validaciones.css` — field-disabled, label-disabled, password-wrapper/toggle, valid-message, checkbox-extranjero
+- `MIGRACION.md` — esta sección
+
+---
 - Creado `PlatoDAO.listarActivosAgrupados()` que obtiene todos los platos activos y los agrupa por categoría, evitando problemas de type mismatch con id_categoria
 - `MenuServlet` ahora usa `listarActivosAgrupados()` en lugar de `listarPorCategoria()` por categoría
 
