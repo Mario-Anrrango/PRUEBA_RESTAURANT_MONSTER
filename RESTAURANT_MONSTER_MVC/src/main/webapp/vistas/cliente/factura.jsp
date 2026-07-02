@@ -1,11 +1,13 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ page import="ec.edu.monster.restaurante.modelo.*,java.util.*" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%
     Pedido pedido = (Pedido) request.getAttribute("pedido");
     if (pedido == null) {
         response.sendRedirect(request.getContextPath() + "/menu"); return;
     }
     List<DetallePedido> detalles = pedido.getDetalles();
+    Usuario usuario = (Usuario) session.getAttribute("usuario");
 %>
 <!DOCTYPE html>
 <html lang="es">
@@ -14,12 +16,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Factura #<%= pedido.getId() %> – Restaurant Master Monster</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/estilos.css">
-    <style>
-        @media print {
-            .no-print { display: none !important; }
-            body { background: white; }
-        }
-    </style>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/print.css">
 </head>
 <body style="background:#f0e6d3;padding:20px;">
 
@@ -38,7 +35,7 @@
             </div>
         </div>
         <div style="margin-top:15px;background:rgba(255,255,255,0.15);border-radius:8px;padding:10px;">
-            <strong>FACTURA N° <%= String.format("%06d", pedido.getId()) %></strong>
+            <strong>FACTURA N° <%= pedido.getId() %></strong>
             &nbsp;&nbsp;|&nbsp;&nbsp;
             Fecha: <strong><%= pedido.getFecha() %></strong>
             &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -55,6 +52,15 @@
             <div><span>Teléfono:</span><br><%= pedido.getTelefonoCliente() != null ? pedido.getTelefonoCliente() : "-" %></div>
             <div><span>Correo:</span><br><%= pedido.getCorreoCliente() != null ? pedido.getCorreoCliente() : "-" %></div>
         </div>
+
+        <!-- Estado del pedido -->
+        <% if ("CANCELADO".equals(pedido.getEstado())) { %>
+            <div class="estado-cancelado"><h2>✘ CANCELADO</h2></div>
+        <% } else if ("PAGADO".equals(pedido.getEstado())) { %>
+            <div class="estado-pagado"><h2>✔ PAGADO</h2></div>
+        <% } else { %>
+            <div class="estado-pendiente"><h2>⏳ PENDIENTE</h2></div>
+        <% } %>
 
         <!-- Detalle de platos -->
         <h3 style="font-family:'Playfair Display',serif;color:#8b4513;margin-bottom:10px;">
@@ -76,8 +82,8 @@
                     <td><small style="color:#888;"><%= d.getCategoriaPlato() %></small></td>
                     <td><strong><%= d.getNombrePlato() %></strong></td>
                     <td style="text-align:center;"><%= d.getCantidad() %></td>
-                    <td style="text-align:right;">$<%= String.format("%.2f", d.getPrecioUnitario()) %></td>
-                    <td style="text-align:right;font-weight:600;">$<%= String.format("%.2f", d.getSubtotalLinea()) %></td>
+                    <td style="text-align:right;">$<%= String.format("%.2f", d.getPrecioUnitario().doubleValue()) %></td>
+                    <td style="text-align:right;font-weight:600;">$<%= String.format("%.2f", d.getSubtotalLinea().doubleValue()) %></td>
                 </tr>
             <% } } %>
             </tbody>
@@ -85,21 +91,23 @@
 
         <!-- Totales -->
         <div class="factura-totales">
-            <div class="linea-total">
+            <div class="linea-total <%= "CANCELADO".equals(pedido.getEstado()) ? "total-cancelado" : "" %>">
                 <span>Subtotal:</span>
-                <span>$<%= String.format("%.2f", pedido.getSubtotal()) %></span>
+                <span>$<%= String.format("%.2f", pedido.getSubtotal().doubleValue()) %></span>
             </div>
+            <% if (!"CANCELADO".equals(pedido.getEstado())) { %>
             <div class="linea-total">
                 <span>IVA (15%):</span>
-                <span>$<%= String.format("%.2f", pedido.getIva()) %></span>
+                <span>$<%= String.format("%.2f", pedido.getIva().doubleValue()) %></span>
             </div>
             <div class="linea-total">
                 <span>Servicio (10%):</span>
-                <span>$<%= String.format("%.2f", pedido.getServicio()) %></span>
+                <span>$<%= String.format("%.2f", pedido.getServicio().doubleValue()) %></span>
             </div>
+            <% } %>
             <div class="linea-total gran-total">
-                <span>TOTAL A PAGAR:</span>
-                <span>$<%= String.format("%.2f", pedido.getTotal()) %></span>
+                <span><%= "CANCELADO".equals(pedido.getEstado()) ? "ESTADO:" : "TOTAL A PAGAR:" %></span>
+                <span><%= "CANCELADO".equals(pedido.getEstado()) ? "✘ CANCELADO – Sin cargo" : "$" + String.format("%.2f", pedido.getTotal().doubleValue()) %></span>
             </div>
         </div>
 
@@ -111,20 +119,24 @@
     <!-- Acciones -->
     <div class="factura-acciones no-print">
         <% if ("PENDIENTE".equals(pedido.getEstado())) { %>
-        <form action="${pageContext.request.contextPath}/factura" method="post" style="display:inline;">
+        <form action="${pageContext.request.contextPath}/factura" method="post" style="display:inline;" id="formPagar">
             <input type="hidden" name="idPedido" value="<%= pedido.getId() %>">
-            <button type="submit" class="btn btn-exito"
-                    onclick="return confirm('¿Confirmar el pago de $<%= String.format("%.2f", pedido.getTotal()) %>?')">
+            <button type="button" class="btn btn-exito" onclick="confirmarPago()">
                 💳 Pagar
             </button>
         </form>
-        <% } else { %>
-            <span style="color:#27ae60;font-weight:700;font-size:1.1em;">✔ PAGADO</span>
         <% } %>
         <button onclick="window.print()" class="btn btn-secundario">🖨️ Imprimir</button>
-        <a href="${pageContext.request.contextPath}/menu" class="btn btn-secundario">← Volver al Menú</a>
+        <% if (usuario != null && "EMPLEADO".equals(usuario.getPerfil())) { %>
+            <a href="${pageContext.request.contextPath}/empleado?accion=buscarCliente" class="btn btn-secundario">← Volver al Cliente</a>
+        <% } else { %>
+            <a href="${pageContext.request.contextPath}/menu" class="btn btn-secundario">← Volver al Menú</a>
+        <% } %>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>var contextPath = '${pageContext.request.contextPath}';</script>
+<script src="${pageContext.request.contextPath}/js/confirmaciones.js"></script>
 </body>
 </html>

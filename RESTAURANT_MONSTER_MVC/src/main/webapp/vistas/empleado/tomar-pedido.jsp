@@ -7,8 +7,8 @@
     }
     Cliente clienteSeleccionado = (Cliente) request.getAttribute("clienteSeleccionado");
     List<Categoria> categorias  = (List<Categoria>) request.getAttribute("categorias");
-    Map<Integer, List<Plato>> platosPorCategoria =
-        (Map<Integer, List<Plato>>) request.getAttribute("platosPorCategoria");
+    Map<String, List<Plato>> platosPorCategoria =
+        (Map<String, List<Plato>>) request.getAttribute("platosPorCategoria");
 %>
 <!DOCTYPE html>
 <html lang="es">
@@ -17,7 +17,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tomar Pedido – Empleado</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/estilos.css">
-    <style> body { padding-bottom: 90px; } </style>
 </head>
 <body>
 <div class="encabezado">
@@ -63,19 +62,19 @@
                 <div class="plato-card-body">
                     <h4><%= p.getNombre() %></h4>
                     <p><%= p.getDescripcion() %></p>
-                    <span class="plato-precio">$<%= String.format("%.2f", p.getPrecio()) %></span>
+                    <span class="plato-precio">$<%= p.getPrecio() != null ? String.format("%.2f", p.getPrecio().doubleValue()) : "0.00" %></span>
                 </div>
                 <div class="plato-footer" id="footer_<%= p.getId() %>">
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                         <input type="checkbox" class="checkbox-plato"
                                name="platos" value="<%= p.getId() %>" id="chk_<%= p.getId() %>"
-                               onchange="toggleCantidad(<%= p.getId() %>, this.checked, <%= p.getPrecio() %>)">
+                               onchange="toggleCantidad('<%= p.getId() %>', this.checked, <%= p.getPrecio() %>)">
                         <span style="font-size:0.9em;color:#555;">Seleccionar</span>
                     </label>
                     <div class="contador-cantidad" id="contador_<%= p.getId() %>" style="display:none;">
-                        <button type="button" onclick="cambiarCantidad(<%= p.getId() %>, -1, <%= p.getPrecio() %>)">−</button>
+                        <button type="button" onclick="cambiarCantidad('<%= p.getId() %>', -1, <%= p.getPrecio() %>)">−</button>
                         <span class="cantidad-display" id="num_<%= p.getId() %>">1</span>
-                        <button type="button" onclick="cambiarCantidad(<%= p.getId() %>, +1, <%= p.getPrecio() %>)">+</button>
+                        <button type="button" onclick="cambiarCantidad('<%= p.getId() %>', +1, <%= p.getPrecio() %>)">+</button>
                         <input type="hidden" name="cantidad_<%= p.getId() %>" id="qty_<%= p.getId() %>" value="1">
                     </div>
                 </div>
@@ -101,52 +100,6 @@
     </form>
 </div>
 
-<script>
-    const seleccionados = {};
-    function toggleCantidad(idPlato, checked, precio) {
-        const contador = document.getElementById('contador_' + idPlato);
-        const card     = document.getElementById('card_' + idPlato);
-        if (checked) {
-            contador.style.display = 'flex';
-            card.classList.add('seleccionado');
-            seleccionados[idPlato] = {
-                qty: parseInt(document.getElementById('num_' + idPlato).textContent),
-                precio: precio
-            };
-        } else {
-            contador.style.display = 'none';
-            card.classList.remove('seleccionado');
-            delete seleccionados[idPlato];
-        }
-        actualizarBarra();
-    }
-    function cambiarCantidad(idPlato, delta, precio) {
-        const numEl = document.getElementById('num_' + idPlato);
-        const qtyEl = document.getElementById('qty_' + idPlato);
-        let val = parseInt(numEl.textContent) + delta;
-        if (val < 1) val = 1;
-        numEl.textContent = val;
-        qtyEl.value = val;
-        if (seleccionados[idPlato]) seleccionados[idPlato].qty = val;
-        actualizarBarra();
-    }
-    function actualizarBarra() {
-        const ids = Object.keys(seleccionados);
-        const btn = document.getElementById('btnEnviar');
-        const res = document.getElementById('resumenPedido');
-        const tot = document.getElementById('totalBarra');
-        if (ids.length === 0) {
-            res.textContent = 'No has seleccionado ningún plato';
-            tot.textContent = '$0.00';
-            btn.disabled = true;
-            return;
-        }
-        let total = 0, items = 0;
-        ids.forEach(id => { total += seleccionados[id].qty * seleccionados[id].precio; items += seleccionados[id].qty; });
-        res.textContent = ids.length + ' plato(s) – ' + items + ' unidad(es)';
-        tot.textContent = '$' + total.toFixed(2) + ' (sin impuestos)';
-        btn.disabled = false;
-    }
-</script>
+<script src="${pageContext.request.contextPath}/js/menu.js"></script>
 </body>
 </html>

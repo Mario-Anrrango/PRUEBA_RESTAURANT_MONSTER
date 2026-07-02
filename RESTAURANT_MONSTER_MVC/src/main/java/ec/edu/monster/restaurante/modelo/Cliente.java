@@ -9,6 +9,8 @@ public class Cliente implements Serializable {
     private String nombres;
     private String apellidos;
     private String cedula;
+    private String identificacionExtranjera;
+    private boolean esExtranjero;
     private String direccion;
     private String correo;
     private String telefono;
@@ -28,6 +30,12 @@ public class Cliente implements Serializable {
 
     public String getCedula()                 { return cedula; }
     public void setCedula(String c)           { this.cedula = c; }
+
+    public String getIdentificacionExtranjera() { return identificacionExtranjera; }
+    public void setIdentificacionExtranjera(String ie) { this.identificacionExtranjera = ie; }
+
+    public boolean isEsExtranjero()           { return esExtranjero; }
+    public void setEsExtranjero(boolean ee)   { this.esExtranjero = ee; }
 
     public String getDireccion()              { return direccion; }
     public void setDireccion(String d)        { this.direccion = d; }

@@ -56,6 +56,11 @@ Thumbs.db
 desktop.ini
 
 # ===========================
+#  Imágenes persistentes del restaurante
+# ===========================
+/restaurant_images/
+
+# ===========================
 #  Logs y temporales
 # ===========================
 *.log

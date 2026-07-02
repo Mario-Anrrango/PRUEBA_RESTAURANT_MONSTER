@@ -10,6 +10,8 @@ public class Empleado implements Serializable {
     private String nombres;
     private String apellidos;
     private String cedula;
+    private String identificacionExtranjera;
+    private boolean esExtranjero;
     private String cargo;
     private String telefono;
     private String correo;
@@ -30,6 +32,12 @@ public class Empleado implements Serializable {
 
     public String getCedula()                   { return cedula; }
     public void setCedula(String c)             { this.cedula = c; }
+
+    public String getIdentificacionExtranjera() { return identificacionExtranjera; }
+    public void setIdentificacionExtranjera(String ie) { this.identificacionExtranjera = ie; }
+
+    public boolean isEsExtranjero()             { return esExtranjero; }
+    public void setEsExtranjero(boolean ee)     { this.esExtranjero = ee; }
 
     public String getCargo()                    { return cargo; }
     public void setCargo(String c)              { this.cargo = c; }

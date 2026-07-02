@@ -1,0 +1,9 @@
+/* ===== ESTILOS DE IMPRESIÓN ===== */
+
+@media print {
+    .no-print { display: none !important; }
+    body { background: white; }
+    .encabezado, .navbar, .factura-acciones,
+    .barra-pedido { display: none !important; }
+    .factura-container { box-shadow: none; border: 1px solid #ddd; }
+}

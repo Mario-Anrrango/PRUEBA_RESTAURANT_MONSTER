@@ -7,8 +7,10 @@ import ec.edu.monster.restaurante.modelo.Plato;
 import org.bson.Document;
 import org.bson.types.Decimal128;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class PlatoDAO {
 
@@ -37,17 +39,45 @@ public class PlatoDAO {
 
     public List<Plato> listarPorCategoria(String idCategoria) {
         List<Plato> lista = new ArrayList<>();
-        for (Document doc : collection.find(Filters.and(
-                Filters.eq("id_categoria", idCategoria),
-                Filters.eq("activo", true)
-            ))) {
-            lista.add(mapearPlato(doc));
+        try {
+            for (Document doc : collection.find(Filters.and(
+                    Filters.eq("activo", true)
+                ))) {
+                Plato p = mapearPlato(doc);
+                if (idCategoria.equals(p.getIdCategoria())) {
+                    lista.add(p);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error en listarPorCategoria: " + e.getMessage());
         }
         return lista;
+    }
+    
+    public Map<String, List<Plato>> listarActivosAgrupados() {
+        Map<String, List<Plato>> agrupados = new java.util.LinkedHashMap<>();
+        try {
+            for (Document doc : collection.find(Filters.eq("activo", true))) {
+                Plato p = mapearPlato(doc);
+                String catId = p.getIdCategoria();
+                if (catId == null) catId = "";
+                agrupados.computeIfAbsent(catId, k -> new ArrayList<>()).add(p);
+            }
+        } catch (Exception e) {
+            System.err.println("Error en listarActivosAgrupados: " + e.getMessage());
+        }
+        return agrupados;
     }
 
     public Plato buscarPorId(String id) {
         Document doc = collection.find(MongoDBConnection.filterById(id)).first();
+        return doc != null ? mapearPlato(doc) : null;
+    }
+
+    public Plato buscarPorNombre(String nombre) {
+        Document doc = collection.find(Filters.eq("nombre", nombre))
+            .sort(new Document("created_at", -1))
+            .first();
         return doc != null ? mapearPlato(doc) : null;
     }
 
@@ -59,7 +89,7 @@ public class PlatoDAO {
             .append("foto", p.getFoto())
             .append("id_categoria", p.getIdCategoria())
             .append("activo", true)
-            .append("created_at", java.time.LocalDateTime.now().toString());
+            .append("created_at", new java.util.Date());
 
         return collection.insertOne(doc).wasAcknowledged();
     }
@@ -102,9 +132,20 @@ public class PlatoDAO {
             p.setPrecio(new BigDecimal((String) precioObj));
         }
         p.setFoto(doc.getString("foto"));
-        p.setIdCategoria(MongoDBConnection.extractString(doc, "id_categoria"));
+        String idCat = MongoDBConnection.extractString(doc, "id_categoria");
+        p.setIdCategoria(idCat);
+        if (idCat != null) {
+            Document catDoc = MongoDBConnection.getDatabase().getCollection("categorias").find(
+                com.mongodb.client.model.Filters.eq("_id",
+                    idCat.matches("\\d+") ? Integer.parseInt(idCat) : idCat
+                )
+            ).first();
+            if (catDoc != null) {
+                p.setNombreCategoria(catDoc.getString("nombre"));
+            }
+        }
         p.setActivo(doc.getBoolean("activo", false));
-        p.setCreated_at(MongoDBConnection.toLocalDateTime(doc.getDate("created_at")));
+        p.setCreated_at(MongoDBConnection.toLocalDateTime(doc, "created_at"));
         return p;
     }
 }

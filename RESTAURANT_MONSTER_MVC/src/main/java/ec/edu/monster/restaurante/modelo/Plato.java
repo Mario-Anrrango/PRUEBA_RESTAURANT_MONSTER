@@ -40,6 +40,7 @@ public class Plato implements Serializable {
     public void setNombreCategoria(String nc)      { this.nombreCategoria = nc; }
 
     public boolean isActivo()                      { return activo; }
+    public boolean getActivo()                     { return activo; }
     public void setActivo(boolean a)               { this.activo = a; }
 
     public LocalDateTime getCreated_at()           { return created_at; }

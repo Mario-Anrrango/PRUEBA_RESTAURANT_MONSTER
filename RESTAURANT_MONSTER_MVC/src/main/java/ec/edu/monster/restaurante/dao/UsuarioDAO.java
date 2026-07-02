@@ -19,6 +19,11 @@ public class UsuarioDAO {
         collection = db.getCollection("usuarios");
     }
 
+    public Usuario buscarPorUsername(String username) {
+        Document doc = collection.find(Filters.eq("username", username)).first();
+        return doc != null ? mapearUsuario(doc) : null;
+    }
+
     public Usuario autenticar(String username, String password) {
         Document doc = collection.find(
             Filters.and(
@@ -41,14 +46,52 @@ public class UsuarioDAO {
             .append("password", password)
             .append("perfil", perfil)
             .append("activo", true)
-            .append("created_at", LocalDateTime.now().toString());
+            .append("created_at", new java.util.Date());
 
         InsertOneResult result = collection.insertOne(doc);
         return result.getInsertedId().asObjectId().getValue().toHexString();
     }
 
+    public boolean activar(String id) {
+        return collection.updateOne(
+            MongoDBConnection.filterById(id),
+            new Document("$set", new Document("activo", true))
+        ).getModifiedCount() > 0;
+    }
+
+    public boolean desactivar(String id) {
+        return collection.updateOne(
+            MongoDBConnection.filterById(id),
+            new Document("$set", new Document("activo", false))
+        ).getModifiedCount() > 0;
+    }
+
+    public boolean actualizarPassword(String id, String newPassword) {
+        return collection.updateOne(
+            MongoDBConnection.filterById(id),
+            new Document("$set", new Document("password", newPassword))
+        ).getModifiedCount() > 0;
+    }
+
+    public boolean actualizarPerfil(String id, String nuevoPerfil) {
+        return collection.updateOne(
+            MongoDBConnection.filterById(id),
+            new Document("$set", new Document("perfil", nuevoPerfil))
+        ).getModifiedCount() > 0;
+    }
+
     public boolean existeUsername(String username) {
         return collection.find(Filters.eq("username", username)).first() != null;
+    }
+
+    public boolean existeUsernameExcepto(String username, String exceptoId) {
+        Document doc = collection.find(
+            Filters.and(
+                Filters.eq("username", username),
+                Filters.ne("_id", MongoDBConnection.filterById(exceptoId))
+            )
+        ).first();
+        return doc != null;
     }
 
     public List<Usuario> listarTodos() {
@@ -66,7 +109,7 @@ public class UsuarioDAO {
         u.setPassword(doc.getString("password"));
         u.setPerfil(doc.getString("perfil"));
         u.setActivo(doc.getBoolean("activo", false));
-        u.setCreated_at(MongoDBConnection.toLocalDateTime(doc.getDate("created_at")));
+        u.setCreated_at(MongoDBConnection.toLocalDateTime(doc, "created_at"));
         return u;
     }
 }

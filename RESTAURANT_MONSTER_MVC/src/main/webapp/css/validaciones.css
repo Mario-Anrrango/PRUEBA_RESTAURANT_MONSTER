@@ -1,0 +1,39 @@
+.error-message {
+    color: #c0392b;
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+    font-weight: 500;
+}
+
+input.error,
+select.error,
+textarea.error {
+    border-color: #c0392b !important;
+    box-shadow: 0 0 6px rgba(192, 57, 43, 0.3) !important;
+}
+
+input.error:focus,
+select.error:focus,
+textarea.error:focus {
+    border-color: #c0392b !important;
+    box-shadow: 0 0 8px rgba(192, 57, 43, 0.4) !important;
+}
+
+/* Contador de caracteres */
+.char-counter {
+    font-size: 11px;
+    color: #888;
+    text-align: right;
+    margin-top: 2px;
+    font-weight: 400;
+}
+
+.char-counter.warning {
+    color: #e67e22;
+}
+
+.char-counter.danger {
+    color: #c0392b;
+    font-weight: 600;
+}

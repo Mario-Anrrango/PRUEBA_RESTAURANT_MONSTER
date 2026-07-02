@@ -1,14 +1,15 @@
 package ec.edu.monster.restaurante.controlador;
 
 import ec.edu.monster.restaurante.dao.CategoriaDAO;
+import ec.edu.monster.restaurante.dao.PedidoDAO;
 import ec.edu.monster.restaurante.dao.PlatoDAO;
-import ec.edu.monster.restaurante.modelo.Categoria;
-import ec.edu.monster.restaurante.modelo.Plato;
-import ec.edu.monster.restaurante.modelo.Usuario;
+import ec.edu.monster.restaurante.modelo.*;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @WebServlet("/menu")
@@ -28,12 +29,47 @@ public class MenuServlet extends HttpServlet {
             return;
         }
 
-        List<Categoria> categorias = new CategoriaDAO().listar();
-        PlatoDAO pDao = new PlatoDAO();
+        // PROBLEMA 2: Manejar modificación de pedido existente
+        String modificarId = req.getParameter("modificar");
+        if (modificarId != null && !modificarId.isEmpty()) {
+            PedidoDAO pedidoDAO = new PedidoDAO();
+            Pedido pedido = pedidoDAO.buscarPorId(modificarId);
+            
+            if (pedido != null && "PENDIENTE".equals(pedido.getEstado())) {
+                LocalDateTime creado = LocalDateTime.of(pedido.getFecha(), pedido.getHora());
+                long horasTranscurridas = Duration.between(creado, LocalDateTime.now()).toHours();
+                
+                if (horasTranscurridas < 24) {
+                    // Guardar pedido y detalles en sesión para que menu.jsp los pre-cargue
+                    session.setAttribute("pedidoModificando", pedido);
+                    req.setAttribute("detallesModificar", pedido.getDetalles());
+                    req.setAttribute("modificandoId", modificarId);
+                } else {
+                    session.removeAttribute("pedidoModificando");
+                    resp.sendRedirect(req.getContextPath() + "/reservas?error=noModificable");
+                    return;
+                }
+            } else {
+                session.removeAttribute("pedidoModificando");
+                resp.sendRedirect(req.getContextPath() + "/reservas?error=noModificable");
+                return;
+            }
+        } else {
+            session.removeAttribute("pedidoModificando");
+        }
 
+        // PROBLEMA 1: Usar listarActivosAgrupados para evitar problemas de tipo id_categoria
+        PlatoDAO pDao = new PlatoDAO();
+        List<Categoria> categorias = new CategoriaDAO().listar();
+        Map<String, List<Plato>> platosActivos = pDao.listarActivosAgrupados();
+        
+        // Organizar por categoría, filtrando solo las que tienen platos activos
         Map<String, List<Plato>> platosPorCategoria = new LinkedHashMap<>();
         for (Categoria cat : categorias) {
-            platosPorCategoria.put(cat.getId(), pDao.listarPorCategoria(cat.getId()));
+            List<Plato> platos = platosActivos.get(cat.getId());
+            if (platos != null && !platos.isEmpty()) {
+                platosPorCategoria.put(cat.getId(), platos);
+            }
         }
 
         req.setAttribute("categorias", categorias);

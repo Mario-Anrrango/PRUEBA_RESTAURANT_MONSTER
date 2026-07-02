@@ -17,6 +17,7 @@ body {
     background: var(--crema);
     color: var(--texto);
     min-height: 100vh;
+    padding-bottom: 90px;
 }
 
 /* ===== ENCABEZADO GENERAL ===== */
@@ -245,6 +246,7 @@ textarea.form-control { border-radius: 12px; resize: vertical; min-height: 90px;
 .plato-card.seleccionado {
     border-color: var(--marron);
     box-shadow: 0 6px 20px rgba(139,69,19,0.35);
+    border: 2px solid var(--marron);
 }
 .plato-card img {
     width: 100%;
@@ -282,6 +284,10 @@ textarea.form-control { border-radius: 12px; resize: vertical; min-height: 90px;
     cursor: pointer;
     accent-color: var(--marron);
 }
+.plato-footer .contador-cantidad {
+    display: none;
+}
+
 .contador-cantidad {
     display: flex;
     align-items: center;

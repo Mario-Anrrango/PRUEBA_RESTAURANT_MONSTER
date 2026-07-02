@@ -15,6 +15,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Platos – Admin</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/estilos.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/validaciones.css">
 </head>
 <body>
 <div class="encabezado">
@@ -38,12 +39,20 @@
         <a href="${pageContext.request.contextPath}/admin?accion=nuevoPlato" class="btn btn-primario">+ Nuevo Plato</a>
     </div>
 
-    <% if (request.getParameter("ok") != null) { %>
-        <div class="alerta alerta-exito">Plato guardado correctamente.</div>
-    <% } %>
-    <% if (request.getParameter("eliminado") != null) { %>
-        <div class="alerta alerta-info">Plato desactivado del menú.</div>
-    <% } %>
+    <c:if test="${not empty sessionScope.mensaje}">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                icon: '${sessionScope.tipoMensaje}',
+                title: '${sessionScope.mensaje}',
+                timer: 3000,
+                showConfirmButton: false
+            });
+        });
+    </script>
+    <c:remove var="mensaje" scope="session"/>
+    <c:remove var="tipoMensaje" scope="session"/>
+</c:if>
 
     <table class="tabla">
         <thead>
@@ -70,10 +79,10 @@
                          onerror="this.src='${pageContext.request.contextPath}/img/LOGO_EMPRESA/Monster.jpg'">
                 </td>
                 <td><strong><%= p.getNombre() %></strong></td>
-                <td><%= p.getNombreCategoria() %></td>
-                <td>$<%= String.format("%.2f", p.getPrecio()) %></td>
+                <td><%= p.getNombreCategoria() != null ? p.getNombreCategoria() : "" %></td>
+                <td>$<%= p.getPrecio() != null ? p.getPrecio().setScale(2, java.math.RoundingMode.HALF_UP) : "0.00" %></td>
                 <td>
-                    <% if (p.getActivo() == 1) { %>
+                    <% if (p.isActivo()) { %>
                         <span style="color:#27ae60;font-weight:600;">Activo</span>
                     <% } else { %>
                         <span style="color:#c0392b;font-weight:600;">Inactivo</span>
@@ -81,10 +90,17 @@
                 </td>
                 <td>
                     <a href="${pageContext.request.contextPath}/admin?accion=editarPlato&id=<%= p.getId() %>"
-                       class="btn btn-sm btn-exito">Editar</a>
-                    <a href="${pageContext.request.contextPath}/admin?accion=eliminarPlato&id=<%= p.getId() %>"
-                       class="btn btn-sm btn-peligro"
-                       onclick="return confirm('¿Desactivar este plato del menú?')">Desactivar</a>
+                       class="btn btn-sm btn-exito"
+                       onclick="return confirmarEditarPlato('<%= p.getNombre() %>')">Editar</a>
+                    <% if (p.isActivo()) { %>
+                        <a href="#"
+                           class="btn btn-sm btn-peligro"
+                           onclick="confirmarDesactivarPlato('<%= p.getId() %>', '<%= p.getNombre().replace("'", "\\'") %>'); return false;">Desactivar</a>
+                    <% } else { %>
+                        <a href="#"
+                           class="btn btn-sm btn-primario"
+                           onclick="confirmarActivarPlato('<%= p.getId() %>', '<%= p.getNombre().replace("'", "\\'") %>'); return false;">Activar</a>
+                    <% } %>
                 </td>
             </tr>
         <%
@@ -94,5 +110,9 @@
         </tbody>
     </table>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>var contextPath = '${pageContext.request.contextPath}';</script>
+<script src="${pageContext.request.contextPath}/js/confirmaciones.js"></script>
+<script src="${pageContext.request.contextPath}/js/validaciones.js"></script>
 </body>
 </html>

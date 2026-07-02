@@ -1,0 +1,44 @@
+/* ===== PAGINACIÓN ===== */
+
+.paginacion {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.paginacion label {
+    color: #888;
+    font-size: 0.9em;
+}
+
+.paginacion select {
+    border: 1px solid #d4b68a;
+    border-radius: 5px;
+    padding: 3px;
+    margin-left: 5px;
+}
+
+.paginacion .info-registros {
+    color: #888;
+    font-size: 0.9em;
+    margin-left: 10px;
+}
+
+.paginacion .botonera {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.paginacion .pagina-actual {
+    padding: 5px 10px;
+    color: #666;
+}
+
+.paginacion .btn-pagina {
+    pointer-events: none;
+    opacity: 0.5;
+}

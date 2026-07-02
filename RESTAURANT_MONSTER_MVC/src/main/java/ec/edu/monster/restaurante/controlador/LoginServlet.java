@@ -6,6 +6,7 @@ import ec.edu.monster.restaurante.dao.UsuarioDAO;
 import ec.edu.monster.restaurante.modelo.Cliente;
 import ec.edu.monster.restaurante.modelo.Empleado;
 import ec.edu.monster.restaurante.modelo.Usuario;
+import ec.edu.monster.restaurante.util.PasswordUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
@@ -17,6 +18,8 @@ public class LoginServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
+        req.setCharacterEncoding("UTF-8");
+        resp.setContentType("text/html;charset=UTF-8");
         HttpSession session = req.getSession(false);
         if (session != null && session.getAttribute("usuario") != null) {
             redirigirPorPerfil((Usuario) session.getAttribute("usuario"), resp);
@@ -33,10 +36,38 @@ public class LoginServlet extends HttpServlet {
         String password = req.getParameter("password");
 
         UsuarioDAO uDao = new UsuarioDAO();
-        Usuario usuario = uDao.autenticar(username, password);
+        Usuario usuario = uDao.buscarPorUsername(username);
 
         if (usuario == null) {
             req.setAttribute("error", "Usuario o contraseña incorrectos.");
+            req.getRequestDispatcher("/vistas/login.jsp").forward(req, resp);
+            return;
+        }
+
+        // Verificar contraseña
+        boolean passwordValida = false;
+
+        if (PasswordUtil.isBcrypt(usuario.getPassword())) {
+            // Contraseña ya encriptada → usar BCrypt.verify()
+            passwordValida = PasswordUtil.verify(password, usuario.getPassword());
+        } else {
+            // Contraseña en texto plano (migración) → comparación directa
+            passwordValida = password.equals(usuario.getPassword());
+            // Migrar automáticamente a BCrypt
+            if (passwordValida) {
+                String hashed = PasswordUtil.hash(password);
+                uDao.actualizarPassword(usuario.getId(), hashed);
+            }
+        }
+
+        if (!passwordValida) {
+            req.setAttribute("error", "Usuario o contraseña incorrectos.");
+            req.getRequestDispatcher("/vistas/login.jsp").forward(req, resp);
+            return;
+        }
+
+        if (!usuario.isActivo()) {
+            req.setAttribute("error", "Esta cuenta está desactivada. Contacte al administrador.");
             req.getRequestDispatcher("/vistas/login.jsp").forward(req, resp);
             return;
         }

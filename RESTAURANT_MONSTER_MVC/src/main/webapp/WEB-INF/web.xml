@@ -20,4 +20,17 @@
         <error-code>500</error-code>
         <location>/vistas/error.jsp</location>
     </error-page>
+
+    <!-- Configuración de codificación UTF-8 para todos los JSPs -->
+    <jsp-config>
+        <jsp-property-group>
+            <url-pattern>*.jsp</url-pattern>
+            <page-encoding>UTF-8</page-encoding>
+        </jsp-property-group>
+    </jsp-config>
+
+    <!-- Tiempo de sesión: 30 minutos -->
+    <session-config>
+        <session-timeout>30</session-timeout>
+    </session-config>
 </web-app>

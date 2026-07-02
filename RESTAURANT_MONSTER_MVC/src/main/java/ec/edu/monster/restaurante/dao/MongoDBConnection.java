@@ -85,4 +85,51 @@ public class MongoDBConnection {
         Object val = doc.get(field);
         return val != null ? String.valueOf(val) : null;
     }
+
+    // ========== Helpers que manejan Date y String (por migración mixta) ==========
+
+    /**
+     * Convierte un campo de un Document a LocalDateTime.
+     * Soporta tanto BSON Date como String ISO.
+     */
+    public static LocalDateTime toLocalDateTime(Document doc, String fieldName) {
+        Object value = doc.get(fieldName);
+        if (value == null) return null;
+        if (value instanceof Date) {
+            return ((Date) value).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+        } else if (value instanceof String) {
+            return LocalDateTime.parse((String) value);
+        }
+        throw new IllegalArgumentException("Campo " + fieldName + " no es Date ni String, es: " + value.getClass());
+    }
+
+    /**
+     * Convierte un campo de un Document a LocalDate.
+     * Soporta tanto BSON Date como String ISO.
+     */
+    public static LocalDate toLocalDate(Document doc, String fieldName) {
+        Object value = doc.get(fieldName);
+        if (value == null) return null;
+        if (value instanceof Date) {
+            return ((Date) value).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        } else if (value instanceof String) {
+            return LocalDate.parse((String) value);
+        }
+        throw new IllegalArgumentException("Campo " + fieldName + " no es Date ni String, es: " + value.getClass());
+    }
+
+    /**
+     * Convierte un campo de un Document a LocalTime.
+     * Soporta tanto BSON Date como String ISO.
+     */
+    public static LocalTime toLocalTime(Document doc, String fieldName) {
+        Object value = doc.get(fieldName);
+        if (value == null) return null;
+        if (value instanceof Date) {
+            return ((Date) value).toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
+        } else if (value instanceof String) {
+            return LocalTime.parse((String) value);
+        }
+        throw new IllegalArgumentException("Campo " + fieldName + " no es Date ni String, es: " + value.getClass());
+    }
 }

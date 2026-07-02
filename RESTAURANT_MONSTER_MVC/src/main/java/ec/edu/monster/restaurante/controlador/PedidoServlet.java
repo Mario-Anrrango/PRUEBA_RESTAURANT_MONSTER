@@ -85,14 +85,35 @@ public class PedidoServlet extends HttpServlet {
         pedido.setTotal(total);
         pedido.setDetalles(detalles);
 
-        PedidoDAO pDao = new PedidoDAO();
-        String idPedido = pDao.insertar(pedido);
+        // PROBLEMA 2: Verificar si es modificación de pedido existente
+        Pedido pedidoModificando = (Pedido) session.getAttribute("pedidoModificando");
+        
+        if (pedidoModificando != null) {
+            // ACTUALIZAR pedido existente
+            pedidoModificando.setDetalles(detalles);
+            pedidoModificando.setSubtotal(subtotal);
+            pedidoModificando.setIva(iva);
+            pedidoModificando.setServicio(servicio);
+            pedidoModificando.setTotal(total);
+            
+            PedidoDAO pDao = new PedidoDAO();
+            pDao.actualizarTodo(pedidoModificando);
+            session.removeAttribute("pedidoModificando");
+            
+            session.setAttribute("mensaje", "Pedido modificado correctamente");
+            session.setAttribute("tipoMensaje", "success");
+            resp.sendRedirect(req.getContextPath() + "/reservas");
+        } else {
+            // CREAR nuevo pedido
+            PedidoDAO pDao = new PedidoDAO();
+            String idPedido = pDao.insertar(pedido);
 
-        if (idPedido == null) {
-            resp.sendRedirect(req.getContextPath() + "/menu?error=pedido");
-            return;
+            if (idPedido == null) {
+                resp.sendRedirect(req.getContextPath() + "/menu?error=pedido");
+                return;
+            }
+
+            resp.sendRedirect(req.getContextPath() + "/factura?id=" + idPedido);
         }
-
-        resp.sendRedirect(req.getContextPath() + "/factura?id=" + idPedido);
     }
 }

@@ -41,8 +41,8 @@ public class PedidoDAO {
         Document doc = new Document()
             .append("id_cliente", pedido.getIdCliente())
             .append("id_empleado", pedido.getIdEmpleado())
-            .append("fecha", pedido.getFecha() != null ? pedido.getFecha().toString() : null)
-            .append("hora", pedido.getHora() != null ? pedido.getHora().toString() : null)
+            .append("fecha", pedido.getFecha() != null ? java.sql.Date.valueOf(pedido.getFecha()) : null)
+            .append("hora", pedido.getHora() != null ? java.sql.Time.valueOf(pedido.getHora()) : null)
             .append("estado", "PENDIENTE")
             .append("subtotal", pedido.getSubtotal() != null
                 ? new Decimal128(pedido.getSubtotal())
@@ -90,24 +90,70 @@ public class PedidoDAO {
         ).getModifiedCount() > 0;
     }
 
+    public boolean cancelar(String idPedido) {
+        return collection.updateOne(
+            MongoDBConnection.filterById(idPedido),
+            new Document("$set", new Document("estado", "CANCELADO"))
+        ).getModifiedCount() > 0;
+    }
+    
+    public boolean actualizarTodo(Pedido pedido) {
+        List<Document> detallesDoc = new ArrayList<>();
+        if (pedido.getDetalles() != null) {
+            for (DetallePedido d : pedido.getDetalles()) {
+                Document detDoc = new Document()
+                    .append("id_plato", d.getIdPlato())
+                    .append("nombre", d.getNombrePlato())
+                    .append("categoria", d.getCategoriaPlato())
+                    .append("cantidad", d.getCantidad())
+                    .append("precio_unitario", d.getPrecioUnitario() != null
+                        ? new Decimal128(d.getPrecioUnitario())
+                        : new Decimal128(BigDecimal.ZERO));
+                detallesDoc.add(detDoc);
+            }
+        }
+        
+        Document doc = new Document()
+            .append("detalles", detallesDoc)
+            .append("subtotal", pedido.getSubtotal() != null ? new Decimal128(pedido.getSubtotal()) : new Decimal128(BigDecimal.ZERO))
+            .append("iva", pedido.getIva() != null ? new Decimal128(pedido.getIva()) : new Decimal128(BigDecimal.ZERO))
+            .append("servicio", pedido.getServicio() != null ? new Decimal128(pedido.getServicio()) : new Decimal128(BigDecimal.ZERO))
+            .append("total", pedido.getTotal() != null ? new Decimal128(pedido.getTotal()) : new Decimal128(BigDecimal.ZERO));
+
+        return collection.updateOne(
+            MongoDBConnection.filterById(pedido.getId()),
+            new Document("$set", doc)
+        ).getModifiedCount() > 0;
+    }
+
     private Pedido mapearPedido(Document doc) {
         Pedido p = new Pedido();
         p.setId(MongoDBConnection.extractId(doc));
         p.setIdCliente(doc.getString("id_cliente"));
         p.setIdEmpleado(doc.getString("id_empleado"));
-        String fechaStr = MongoDBConnection.extractString(doc, "fecha");
-        if (fechaStr != null && !fechaStr.equals("null")) {
-            p.setFecha(LocalDate.parse(fechaStr));
-        }
-        String horaStr = MongoDBConnection.extractString(doc, "hora");
-        if (horaStr != null && !horaStr.equals("null")) {
-            p.setHora(LocalTime.parse(horaStr));
-        }
+        p.setFecha(MongoDBConnection.toLocalDate(doc, "fecha"));
+        p.setHora(MongoDBConnection.toLocalTime(doc, "hora"));
         p.setEstado(doc.getString("estado"));
         p.setSubtotal(extraerDecimal(doc, "subtotal"));
         p.setIva(extraerDecimal(doc, "iva"));
         p.setServicio(extraerDecimal(doc, "servicio"));
         p.setTotal(extraerDecimal(doc, "total"));
+
+        // Cargar datos del cliente desde la colección clientes
+        String idCliente = doc.getString("id_cliente");
+        if (idCliente != null && !idCliente.isEmpty()) {
+            Document clienteDoc = MongoDBConnection.getDatabase().getCollection("clientes")
+                .find(MongoDBConnection.filterById(idCliente))
+                .first();
+            if (clienteDoc != null) {
+                p.setNombreCliente(
+                    clienteDoc.getString("nombres") + " " + clienteDoc.getString("apellidos")
+                );
+                p.setCedulaCliente(clienteDoc.getString("cedula"));
+                p.setTelefonoCliente(clienteDoc.getString("telefono"));
+                p.setCorreoCliente(clienteDoc.getString("correo"));
+            }
+        }
 
         List<DetallePedido> detalles = new ArrayList<>();
         List<Document> detallesDoc = doc.getList("detalles", Document.class);
@@ -129,14 +175,8 @@ public class PedidoDAO {
     private Pedido mapearPedidoResumen(Document doc) {
         Pedido p = new Pedido();
         p.setId(MongoDBConnection.extractId(doc));
-        String fechaStr = MongoDBConnection.extractString(doc, "fecha");
-        if (fechaStr != null && !fechaStr.equals("null")) {
-            p.setFecha(LocalDate.parse(fechaStr));
-        }
-        String horaStr = MongoDBConnection.extractString(doc, "hora");
-        if (horaStr != null && !horaStr.equals("null")) {
-            p.setHora(LocalTime.parse(horaStr));
-        }
+        p.setFecha(MongoDBConnection.toLocalDate(doc, "fecha"));
+        p.setHora(MongoDBConnection.toLocalTime(doc, "hora"));
         p.setEstado(doc.getString("estado"));
         p.setTotal(extraerDecimal(doc, "total"));
         return p;

@@ -3,6 +3,7 @@ package ec.edu.monster.restaurante.controlador;
 import ec.edu.monster.restaurante.dao.ClienteDAO;
 import ec.edu.monster.restaurante.dao.UsuarioDAO;
 import ec.edu.monster.restaurante.modelo.Cliente;
+import ec.edu.monster.restaurante.util.PasswordUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
@@ -45,7 +46,9 @@ public class RegistroClienteServlet extends HttpServlet {
             return;
         }
 
-        String idUsuario = uDao.insertar(username, password, "CLIENTE");
+        // Encriptar contraseña con BCrypt
+        String hashedPassword = PasswordUtil.hash(password);
+        String idUsuario = uDao.insertar(username, hashedPassword, "CLIENTE");
         if (idUsuario == null) {
             req.setAttribute("error", "Error al crear el usuario. Intente nuevamente.");
             req.getRequestDispatcher("/vistas/registro-cliente.jsp").forward(req, resp);
@@ -56,6 +59,8 @@ public class RegistroClienteServlet extends HttpServlet {
         c.setNombres(nombres);
         c.setApellidos(apellidos);
         c.setCedula(cedula);
+        c.setIdentificacionExtranjera(req.getParameter("identificacionExtranjera"));
+        c.setEsExtranjero("on".equals(req.getParameter("esExtranjero")));
         c.setDireccion(direccion);
         c.setCorreo(correo);
         c.setTelefono(telefono);
