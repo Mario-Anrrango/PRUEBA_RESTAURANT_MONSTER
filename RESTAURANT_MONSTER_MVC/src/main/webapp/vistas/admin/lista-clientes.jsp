@@ -36,23 +36,30 @@
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
         <h2 class="titulo-seccion" style="margin-bottom:0;">Clientes Registrados</h2>
         <a href="${pageContext.request.contextPath}/admin?accion=formCliente" class="btn btn-primario">+ Nuevo Cliente</a>
-    </div>
-
-<!-- Mensajes SweetAlert -->
-<c:if test="${not empty sessionScope.mensaje}">
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    Swal.fire({
-        icon: '${sessionScope.tipoMensaje}',
-        title: '${sessionScope.mensaje}',
-        timer: 3000,
-        showConfirmButton: false
+    </div>    <!-- Mensajes SweetAlert (validación JS para evitar modal blanco) -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var mensaje = '${sessionScope.mensaje}';
+        var tipoMensaje = '${sessionScope.tipoMensaje}';
+        if (mensaje && mensaje.trim() !== '' && mensaje !== 'null') {
+            var icono = 'info';
+            if (tipoMensaje === 'success') icono = 'success';
+            else if (tipoMensaje === 'error') icono = 'error';
+            else if (tipoMensaje === 'warning') icono = 'warning';
+            Swal.fire({
+                icon: icono,
+                title: tipoMensaje === 'success' ? '\u00c9xito' :
+                       tipoMensaje === 'error' ? 'Error' :
+                       tipoMensaje === 'warning' ? 'Advertencia' : 'Informaci\u00f3n',
+                text: mensaje,
+                timer: 3000,
+                showConfirmButton: false
+            });
+        }
     });
-});
-</script>
-<c:remove var="mensaje" scope="session"/>
-<c:remove var="tipoMensaje" scope="session"/>
-</c:if>
+    </script>
+    <c:remove var="mensaje" scope="session"/>
+    <c:remove var="tipoMensaje" scope="session"/>
 
     <!-- Búsqueda -->
     <form method="get" action="${pageContext.request.contextPath}/admin" class="busqueda-form" style="margin-bottom:15px;">

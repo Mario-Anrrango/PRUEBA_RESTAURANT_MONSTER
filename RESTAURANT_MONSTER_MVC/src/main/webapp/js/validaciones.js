@@ -281,10 +281,11 @@ function validarCorreoOnBlur() {
 function validarDireccionOnBlur() {
     var input = document.getElementById('direccion');
     var msgId = 'direccion-message';
+    if (!input) return true;
     var valor = input.value.trim();
     if (valor.length === 0) { mostrarError(input, msgId, 'Campo obligatorio'); return false; }
     if (valor.length < 10) { mostrarError(input, msgId, 'Mínimo 10 caracteres'); return false; }
-    if (valor.length > 200) { mostrarError(input, msgId, 'Máximo 200 caracteres'); return false; }
+    if (valor.length > 300) { mostrarError(input, msgId, 'Máximo 300 caracteres'); return false; }
     mostrarExito(input, msgId, '');
     return true;
 }
@@ -387,6 +388,78 @@ function alternarIdentificacion(checkbox, cedulaInput, extranjeroInput) {
 }
 
 // =========================================================
+// FASE 6.9 — VALIDACIONES PLATO (ADMIN)
+// =========================================================
+
+function validarNombrePlato() {
+    var input = document.getElementById('nombre');
+    var msgId = 'nombre-error';
+    if (!input) return;
+    
+    input.addEventListener('input', function() {
+        this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+        if (this.value.length > 50) this.value = this.value.substring(0, 50);
+    });
+    
+    input.addEventListener('blur', function() {
+        var valor = this.value.trim();
+        if (valor.length < 4) { mostrarError(this, msgId, 'Mínimo 4 caracteres'); return; }
+        if (valor.length > 50) { mostrarError(this, msgId, 'Máximo 50 caracteres'); return; }
+        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(valor)) { mostrarError(this, msgId, 'Solo letras'); return; }
+        mostrarExito(this, msgId, '');
+    });
+}
+
+function validarPrecioPlato() {
+    var input = document.getElementById('precio');
+    var msgId = 'precio-error';
+    if (!input) return;
+    
+    input.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9.]/g, '');
+        var partes = this.value.split('.');
+        if (partes.length > 2) this.value = partes[0] + '.' + partes[1];
+        if (partes[0].length > 2) this.value = partes[0].substring(0, 2) + (partes[1] ? '.' + partes[1] : '');
+        if (partes[1] && partes[1].length > 2) this.value = partes[0] + '.' + partes[1].substring(0, 2);
+    });
+    
+    input.addEventListener('blur', function() {
+        var valor = parseFloat(this.value);
+        if (isNaN(valor) || this.value.trim() === '') { mostrarError(this, msgId, 'Ingrese un valor numérico'); return; }
+        if (valor < 0.10) { mostrarError(this, msgId, 'Mínimo $0.10'); return; }
+        if (valor > 99.99) { mostrarError(this, msgId, 'Máximo $99.99'); return; }
+        mostrarExito(this, msgId, '');
+    });
+}
+
+function validarCategoriaPlato() {
+    var select = document.getElementById('categoria');
+    var msgId = 'categoria-error';
+    if (!select) return;
+    
+    select.addEventListener('change', function() {
+        if (this.value === '' || this.value === '-- Seleccionar --') {
+            mostrarError(this, msgId, 'Seleccione una categoría');
+        } else {
+            mostrarExito(this, msgId, '');
+        }
+    });
+}
+
+function validarDescripcionPlato() {
+    var textarea = document.getElementById('descripcion');
+    var msgId = 'descripcion-error';
+    if (!textarea) return;
+    
+    textarea.addEventListener('blur', function() {
+        var valor = this.value.trim();
+        if (valor.length < 10) { mostrarError(this, msgId, 'Mínimo 10 caracteres'); return; }
+        if (valor.length > 300) { mostrarError(this, msgId, 'Máximo 300 caracteres'); return; }
+        mostrarExito(this, msgId, '');
+    });
+}
+
+// =========================================================
 // VALIDACIÓN PREVIA AL ENVÍO
 // =========================================================
 
@@ -475,5 +548,9 @@ window.togglePasswordVisibility = togglePasswordVisibility;
 window.actualizarContador = actualizarContador;
 window.alternarIdentificacion = alternarIdentificacion;
 window.validarFormularioRegistro = validarFormularioRegistro;
+window.validarNombrePlato = validarNombrePlato;
+window.validarPrecioPlato = validarPrecioPlato;
+window.validarCategoriaPlato = validarCategoriaPlato;
+window.validarDescripcionPlato = validarDescripcionPlato;
 
 console.log("✅ Todas las funciones exportadas");

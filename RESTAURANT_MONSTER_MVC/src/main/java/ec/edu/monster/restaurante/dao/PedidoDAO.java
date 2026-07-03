@@ -3,9 +3,11 @@ package ec.edu.monster.restaurante.dao;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;
 import ec.edu.monster.restaurante.modelo.DetallePedido;
 import ec.edu.monster.restaurante.modelo.Pedido;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.Decimal128;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -81,6 +83,60 @@ public class PedidoDAO {
             lista.add(mapearPedido(doc));
         }
         return lista;
+    }
+
+    // ========== FASE 6.7: Paginación para Mis Reservas ==========
+
+    public List<Pedido> listarPorClienteConPaginacion(String idCliente, int pagina,
+            int registrosPorPagina, String fechaDesde, String fechaHasta, String estado) {
+        List<Pedido> lista = new ArrayList<>();
+        
+        List<Bson> filtros = new ArrayList<>();
+        filtros.add(Filters.eq("id_cliente", idCliente));
+        
+        if (fechaDesde != null && !fechaDesde.isEmpty()) {
+            LocalDate desde = LocalDate.parse(fechaDesde);
+            filtros.add(Filters.gte("fecha", java.sql.Date.valueOf(desde)));
+        }
+        if (fechaHasta != null && !fechaHasta.isEmpty()) {
+            LocalDate hasta = LocalDate.parse(fechaHasta);
+            filtros.add(Filters.lte("fecha", java.sql.Date.valueOf(hasta)));
+        }
+        if (estado != null && !estado.isEmpty() && !"TODOS".equals(estado)) {
+            filtros.add(Filters.eq("estado", estado));
+        }
+        
+        Bson filtro = Filters.and(filtros);
+        int skip = (pagina - 1) * registrosPorPagina;
+        
+        for (Document doc : collection.find(filtro)
+                .sort(Sorts.descending("fecha", "hora"))
+                .skip(skip)
+                .limit(registrosPorPagina)) {
+            lista.add(mapearPedidoResumen(doc));
+        }
+        return lista;
+    }
+
+    public int contarPedidosPorCliente(String idCliente, String fechaDesde,
+            String fechaHasta, String estado) {
+        List<Bson> filtros = new ArrayList<>();
+        filtros.add(Filters.eq("id_cliente", idCliente));
+        
+        if (fechaDesde != null && !fechaDesde.isEmpty()) {
+            LocalDate desde = LocalDate.parse(fechaDesde);
+            filtros.add(Filters.gte("fecha", java.sql.Date.valueOf(desde)));
+        }
+        if (fechaHasta != null && !fechaHasta.isEmpty()) {
+            LocalDate hasta = LocalDate.parse(fechaHasta);
+            filtros.add(Filters.lte("fecha", java.sql.Date.valueOf(hasta)));
+        }
+        if (estado != null && !estado.isEmpty() && !"TODOS".equals(estado)) {
+            filtros.add(Filters.eq("estado", estado));
+        }
+        
+        Bson filtro = Filters.and(filtros);
+        return (int) collection.countDocuments(filtro);
     }
 
     public boolean marcarPagado(String idPedido) {

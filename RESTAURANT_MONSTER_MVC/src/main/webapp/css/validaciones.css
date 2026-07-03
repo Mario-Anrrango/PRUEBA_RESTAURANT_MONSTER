@@ -137,3 +137,235 @@ textarea.error:focus {
         max-width: 100%;
     }
 }
+
+/* ==========================================
+   FASE 6.10 — FILTROS Y PAGINACIÓN EN GESTIÓN DE PLATOS
+   ========================================== */
+
+.filtros-container {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #fff;
+    border-radius: 8px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.filtros-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filtro-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filtro-group select {
+    padding: 8px 12px;
+    border: 1px solid #d4a577;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+    font-size: 0.95em;
+}
+
+.btn-limpiar {
+    padding: 8px 15px;
+    background-color: #6c757d;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.9em;
+    transition: background-color 0.3s;
+}
+
+.btn-limpiar:hover {
+    background-color: #5a6268;
+}
+
+.filtro-group select:focus {
+    outline: none;
+    border-color: #8b4513;
+    box-shadow: 0 0 4px rgba(139, 69, 19, 0.3);
+}
+
+.filtro-group label {
+    font-weight: 600;
+    color: #555;
+    white-space: nowrap;
+}
+
+/* ==========================================
+   FASE 6.6 — PLATOS INACTIVOS EN MODIFICACIÓN
+   ========================================== */
+
+.plato-inactivo {
+    opacity: 0.6;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd !important;
+    position: relative;
+}
+
+.plato-inactivo::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.3);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.img-inactiva {
+    filter: grayscale(100%);
+    opacity: 0.7;
+}
+
+.label-inactivo {
+    color: #666;
+    cursor: not-allowed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
+    gap: 8px;
+}
+
+.badge-no-disponible {
+    display: inline-block;
+    background-color: #dc3545;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cantidad-inactiva {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    text-align: center;
+    color: #856404;
+    font-size: 0.9em;
+}
+
+.cantidad-inactiva strong {
+    color: #533f03;
+    font-size: 1.1em;
+}
+
+/* ==========================================
+   FASE 6.7 — PAGINACIÓN MIS RESERVAS
+   ========================================== */
+
+.paginacion-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.paginacion-info {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.registros-select {
+    padding: 5px 10px;
+    border: 1px solid #d4a577;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.paginacion-botones {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.paginacion-botones a {
+    padding: 8px 12px;
+    background-color: #8b4513;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.paginacion-botones a:hover:not(.disabled) {
+    background-color: #a0522d;
+}
+
+.paginacion-botones a.disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.pagina-actual {
+    font-weight: bold;
+    color: #8b4513;
+}
+
+/* ==========================================
+   FASE 6.9 — FORMULARIO PLATO (ADMIN)
+   ========================================== */
+
+.foto-actual {
+    border: 2px dashed #d4a577;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    background: #fef9f1;
+}
+
+.foto-actual p {
+    margin-bottom: 8px;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.foto-actual-img {
+    max-width: 180px;
+    max-height: 160px;
+    margin: 10px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    object-fit: cover;
+}
+
+.btn-cambiar-foto {
+    display: inline-block;
+    padding: 8px 18px;
+    background-color: #8b4513;
+    color: white;
+    border-radius: 25px;
+    cursor: pointer;
+    margin-top: 8px;
+    font-size: 0.9em;
+    transition: background-color 0.3s;
+}
+
+.btn-cambiar-foto:hover {
+    background-color: #a0522d;
+}
+
+.btn-cambiar-foto input[type="file"] {
+    display: none;
+}

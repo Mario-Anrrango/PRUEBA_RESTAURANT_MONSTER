@@ -6,8 +6,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
-import java.time.LocalDate;
-import java.util.ArrayList;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @WebServlet("/reservas")
@@ -34,9 +34,25 @@ public class ReservasServlet extends HttpServlet {
         if ("cancelar".equals(accion)) {
             String id = req.getParameter("id");
             if (id != null && !id.isEmpty()) {
-                new PedidoDAO().cancelar(id);
+                PedidoDAO pDao = new PedidoDAO();
+                Pedido pedido = pDao.buscarPorId(id);
+                if (pedido != null && "PENDIENTE".equals(pedido.getEstado())) {
+                    LocalDateTime creado = LocalDateTime.of(pedido.getFecha(), pedido.getHora());
+                    long horasTranscurridas = Duration.between(creado, LocalDateTime.now()).toHours();
+                    if (horasTranscurridas < 24) {
+                        pDao.cancelar(id);
+                        session.setAttribute("mensaje", "Pedido cancelado correctamente");
+                        session.setAttribute("tipoMensaje", "success");
+                    } else {
+                        session.setAttribute("mensaje", "No se puede cancelar. Han pasado mas de 24 horas desde la creacion");
+                        session.setAttribute("tipoMensaje", "error");
+                    }
+                } else {
+                    session.setAttribute("mensaje", "No se puede cancelar. El pedido no esta pendiente");
+                    session.setAttribute("tipoMensaje", "error");
+                }
             }
-            resp.sendRedirect("reservas?msg=cancelado");
+            resp.sendRedirect("reservas");
             return;
         }
 
@@ -52,49 +68,43 @@ public class ReservasServlet extends HttpServlet {
             return;
         }
 
-        // Aplicar filtros
+        // FASE 6.7: Paginacion y filtros en BD
         String desde = req.getParameter("desde");
         String hasta = req.getParameter("hasta");
         String estado = req.getParameter("estado");
+        
+        int pagina = 1;
+        int registrosPorPagina = 5;
+        try {
+            if (req.getParameter("pagina") != null) pagina = Integer.parseInt(req.getParameter("pagina"));
+            if (req.getParameter("registros") != null) registrosPorPagina = Integer.parseInt(req.getParameter("registros"));
+        } catch (NumberFormatException e) { /* valores por defecto */ }
+
+        req.setAttribute("desde", desde);
+        req.setAttribute("hasta", hasta);
+        req.setAttribute("estado", estado);
 
         if (cliente != null) {
-            List<Pedido> pedidos = new PedidoDAO().listarPorCliente(cliente.getId());
-
-            // Filtrar por estado
-            if (estado != null && !"TODOS".equals(estado)) {
-                List<Pedido> filtrados = new ArrayList<>();
-                for (Pedido p : pedidos) {
-                    if (estado.equals(p.getEstado())) {
-                        filtrados.add(p);
-                    }
-                }
-                pedidos = filtrados;
+            try {
+                PedidoDAO pDao = new PedidoDAO();
+                List<Pedido> pedidos = pDao.listarPorClienteConPaginacion(
+                    cliente.getId(), pagina, registrosPorPagina, desde, hasta, estado);
+                int totalRegistros = pDao.contarPedidosPorCliente(cliente.getId(), desde, hasta, estado);
+                int totalPaginas = (int) Math.ceil((double) totalRegistros / registrosPorPagina);
+                
+                req.setAttribute("pedidos", pedidos);
+                req.setAttribute("pagina", pagina);
+                req.setAttribute("totalPaginas", totalPaginas);
+                req.setAttribute("totalRegistros", totalRegistros);
+                req.setAttribute("registrosPorPagina", registrosPorPagina);
+            } catch (Exception e) {
+                e.printStackTrace();
+                req.setAttribute("pedidos", new PedidoDAO().listarPorCliente(cliente.getId()));
+                req.setAttribute("pagina", 1);
+                req.setAttribute("totalPaginas", 1);
+                req.setAttribute("totalRegistros", 0);
+                req.setAttribute("registrosPorPagina", 5);
             }
-
-            // Filtrar por rango de fechas
-            if (desde != null && !desde.isEmpty()) {
-                LocalDate desdeDate = LocalDate.parse(desde);
-                List<Pedido> filtrados = new ArrayList<>();
-                for (Pedido p : pedidos) {
-                    if (!p.getFecha().isBefore(desdeDate)) {
-                        filtrados.add(p);
-                    }
-                }
-                pedidos = filtrados;
-            }
-
-            if (hasta != null && !hasta.isEmpty()) {
-                LocalDate hastaDate = LocalDate.parse(hasta);
-                List<Pedido> filtrados = new ArrayList<>();
-                for (Pedido p : pedidos) {
-                    if (!p.getFecha().isAfter(hastaDate)) {
-                        filtrados.add(p);
-                    }
-                }
-                pedidos = filtrados;
-            }
-
-            req.setAttribute("pedidos", pedidos);
         }
 
         req.getRequestDispatcher("/vistas/cliente/reservas.jsp").forward(req, resp);

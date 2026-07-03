@@ -75,6 +75,16 @@
             </select>
         </div>
         <button type="submit" class="btn btn-primario" style="height:44px;margin-top:22px;">Filtrar</button>
+        
+        <%-- FASE 6.7: Botón Limpiar filtros (visible solo si hay filtros activos) --%>
+        <% if ((filtroDesde != null && !filtroDesde.isEmpty()) || 
+               (filtroHasta != null && !filtroHasta.isEmpty()) || 
+               !"TODOS".equals(filtroEstado)) { %>
+            <a href="${pageContext.request.contextPath}/reservas" 
+               class="btn btn-secundario" style="height:44px;margin-top:22px;display:inline-flex;align-items:center;">
+                ✕ Limpiar filtros
+            </a>
+        <% } %>
     </form>
 
     <%
@@ -128,6 +138,51 @@
         <% } %>
         </tbody>
     </table>
+    
+    <%-- FASE 6.7: Paginación — siempre visible cuando hay registros --%>
+    <%
+        Integer tp = (Integer) request.getAttribute("totalPaginas");
+        Integer pg = (Integer) request.getAttribute("pagina");
+        Integer rpp = (Integer) request.getAttribute("registrosPorPagina");
+        Integer tr = (Integer) request.getAttribute("totalRegistros");
+        if (tp == null) tp = 1;
+        if (pg == null) pg = 1;
+        if (rpp == null) rpp = 5;
+        if (tr == null) tr = 0;
+        
+        // Construir URL base para paginación (mantener filtros)
+        String baseUrl = request.getContextPath() + "/reservas?pagina=";
+        String paramsUrl = "&registros=" + rpp;
+        if (filtroDesde != null && !filtroDesde.isEmpty()) paramsUrl += "&desde=" + filtroDesde;
+        if (filtroHasta != null && !filtroHasta.isEmpty()) paramsUrl += "&hasta=" + filtroHasta;
+        if (filtroEstado != null && !"TODOS".equals(filtroEstado)) paramsUrl += "&estado=" + filtroEstado;
+    %>
+    
+    <% if (tr > 0) { %>
+    <div class="paginacion-container">
+        <div class="paginacion-info">
+            <label>Mostrar: 
+                <select class="registros-select" onchange="cambiarRegistros(this.value)">
+                    <option value="5" <%= rpp == 5 ? "selected" : "" %>>5</option>
+                    <option value="10" <%= rpp == 10 ? "selected" : "" %>>10</option>
+                    <option value="25" <%= rpp == 25 ? "selected" : "" %>>25</option>
+                    <option value="50" <%= rpp == 50 ? "selected" : "" %>>50</option>
+                </select>
+            </label>
+            <span>Total: <%= tr %> registros</span>
+        </div>
+        
+        <% if (tp > 1) { %>
+        <div class="paginacion-botones">
+            <a href="<%= baseUrl + 1 + paramsUrl %>" class="<%= pg == 1 ? "disabled" : "" %>">≪ Inicio</a>
+            <a href="<%= baseUrl + (pg - 1) + paramsUrl %>" class="<%= pg == 1 ? "disabled" : "" %>">‹ Anterior</a>
+            <span class="pagina-actual">Pág <%= pg %> de <%= tp %></span>
+            <a href="<%= baseUrl + (pg + 1) + paramsUrl %>" class="<%= pg == tp ? "disabled" : "" %>">Siguiente ›</a>
+            <a href="<%= baseUrl + tp + paramsUrl %>" class="<%= pg == tp ? "disabled" : "" %>">Fin ≫</a>
+        </div>
+        <% } %>
+    </div>
+    <% } %>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -135,6 +190,13 @@
 <script src="${pageContext.request.contextPath}/js/confirmaciones.js"></script>
 <script src="${pageContext.request.contextPath}/js/validaciones.js"></script>
 <script>
+function cambiarRegistros(cantidad) {
+    var url = new URL(window.location.href);
+    url.searchParams.set('registros', cantidad);
+    url.searchParams.set('pagina', '1');
+    window.location.href = url.toString();
+}
+
 // Validación de fechas (ERROR 11) - específica de esta página
 document.addEventListener('DOMContentLoaded', function() {
     var inputDesde = document.getElementById('fechaDesde');

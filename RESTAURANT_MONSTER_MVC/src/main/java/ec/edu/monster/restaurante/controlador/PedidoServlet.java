@@ -44,30 +44,50 @@ public class PedidoServlet extends HttpServlet {
         }
 
         String[] platosSeleccionados = req.getParameterValues("platos");
-        if (platosSeleccionados == null || platosSeleccionados.length == 0) {
+        String[] platosInactivos = req.getParameterValues("platos_inactivos");
+        
+        if ((platosSeleccionados == null || platosSeleccionados.length == 0) &&
+            (platosInactivos == null || platosInactivos.length == 0)) {
             resp.sendRedirect(req.getContextPath() + "/menu?error=vacio");
             return;
         }
 
+        // FASE 6.6: Verificar si es modificación de pedido existente
+        Pedido pedidoModificando = (Pedido) session.getAttribute("pedidoModificando");
         PlatoDAO platoDao = new PlatoDAO();
         List<DetallePedido> detalles = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
-        for (String idPlatoStr : platosSeleccionados) {
-            String cantStr = req.getParameter("cantidad_" + idPlatoStr);
-            int cantidad = (cantStr != null && !cantStr.isEmpty()) ? Integer.parseInt(cantStr) : 1;
-            if (cantidad < 1) cantidad = 1;
+        // Procesar platos ACTIVOS seleccionados
+        if (platosSeleccionados != null) {
+            for (String idPlatoStr : platosSeleccionados) {
+                String cantStr = req.getParameter("cantidad_" + idPlatoStr);
+                int cantidad = (cantStr != null && !cantStr.isEmpty()) ? Integer.parseInt(cantStr) : 1;
+                if (cantidad < 1) cantidad = 1;
 
-            Plato plato = platoDao.buscarPorId(idPlatoStr);
-            if (plato != null) {
-                DetallePedido d = new DetallePedido();
-                d.setIdPlato(idPlatoStr);
-                d.setNombrePlato(plato.getNombre());
-                d.setCategoriaPlato(plato.getNombreCategoria());
-                d.setCantidad(cantidad);
-                d.setPrecioUnitario(plato.getPrecio());
-                detalles.add(d);
-                subtotal = subtotal.add(plato.getPrecio().multiply(BigDecimal.valueOf(cantidad)));
+                Plato plato = platoDao.buscarPorId(idPlatoStr);
+                if (plato != null && plato.isActivo()) {
+                    DetallePedido d = new DetallePedido();
+                    d.setIdPlato(idPlatoStr);
+                    d.setNombrePlato(plato.getNombre());
+                    d.setCategoriaPlato(plato.getNombreCategoria());
+                    d.setCantidad(cantidad);
+                    d.setPrecioUnitario(plato.getPrecio());
+                    d.setActivoEnBD(true);
+                    detalles.add(d);
+                    subtotal = subtotal.add(plato.getPrecio().multiply(BigDecimal.valueOf(cantidad)));
+                }
+            }
+        }
+
+        // FASE 6.6: MANTENER platos INACTIVOS del pedido original
+        if (pedidoModificando != null && pedidoModificando.getDetalles() != null) {
+            for (DetallePedido detOriginal : pedidoModificando.getDetalles()) {
+                if (!detOriginal.isActivoEnBD()) {
+                    // Mantener el detalle original completo (incluyendo precio del momento)
+                    detalles.add(detOriginal);
+                    subtotal = subtotal.add(detOriginal.getSubtotalLinea());
+                }
             }
         }
 
@@ -84,9 +104,6 @@ public class PedidoServlet extends HttpServlet {
         pedido.setServicio(servicio);
         pedido.setTotal(total);
         pedido.setDetalles(detalles);
-
-        // PROBLEMA 2: Verificar si es modificación de pedido existente
-        Pedido pedidoModificando = (Pedido) session.getAttribute("pedidoModificando");
         
         if (pedidoModificando != null) {
             // ACTUALIZAR pedido existente

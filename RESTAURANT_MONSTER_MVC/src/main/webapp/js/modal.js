@@ -5,14 +5,14 @@
 function abrirModalReset(id, perfil) {
     document.getElementById('resetUserId').value = id;
     document.getElementById('resetUserPerfil').value = perfil;
-    document.getElementById('modalResetPassword').style.display = 'flex';
+    document.getElementById('modalResetPassword').classList.add('visible');
     document.getElementById('newPassword').value = '';
     document.getElementById('confirmPassword').value = '';
     document.getElementById('passwordError').style.display = 'none';
 }
 
 function cerrarModal() {
-    document.getElementById('modalResetPassword').style.display = 'none';
+    document.getElementById('modalResetPassword').classList.remove('visible');
 }
 
 function validarResetPassword() {

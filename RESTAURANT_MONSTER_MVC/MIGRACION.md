@@ -170,9 +170,40 @@ _Completada — scripts de test y corrección de errores_
 - [x] Botón "Editar Pedido" en historial (si PENDIENTE)
 - [x] Validaciones JS en formulario de registro de cliente
 
-### 6.10 Validación de Precios en Pedidos
-- [x] `PedidoDAO.insertar()` guarda precio_unitario del momento
-- [x] `factura.jsp` muestra precios guardados (no del plato actual)
+### 6.10 Fase 6.10 — Correcciones Críticas en Gestión de Platos ✅
+_Completada — rutas dinámicas de imágenes, .webp, moveImage(), paginación en gestión de platos_
+
+#### Problemas Corregidos
+
+**1. Imagen no se actualiza al guardar** — 
+- `ImageHandler.java` reescrito con ruta dinámica: `C:/Users/[usuario_sistema]/restaurant_images/platos/[categoria]/`
+- Detecta usuario del sistema automáticamente con `System.getProperty("user.name")`
+- Soporta `.webp` además de `.jpg/.jpeg/.png`
+- `saveImage()` ahora recibe `categoria` para organizar imágenes en subdirectorios
+- `moveImage()`: mueve imagen de categoría antigua a nueva cuando cambia
+- `deleteImage()`: usa ruta dinámica
+
+**2. Imagen por defecto incorrecta** — 
+- Creado `img/placeholder-plato.svg` como placeholder genérico
+- `onerror` en gestión de platos ya no usa logo de empresa, usa SVG placeholder
+
+**3. Falta paginación en Gestionar Platos** — 
+- Nuevo método `listarPlatos()` con paginación (5 por defecto) en AdminServlet
+- Filtro por categoría con selector desplegable
+- Botón "✕ Limpiar filtro" visible solo cuando hay filtro activo
+- 4 nuevos métodos en `PlatoDAO`: `listarConPaginacion()`, `listarPorCategoriaConPaginacion()`, `contarTotal()`, `contarPorCategoria()`
+- Selector de registros por página: 5, 10, 25, 50
+- Botones de navegación: Inicio, Anterior, Siguiente, Fin
+
+#### Archivos Modificados/Agregados
+| Archivo | Cambio |
+|---|---|
+| `ImageHandler.java` | Reescrito: ruta dinámica, .webp, subdirectorios por categoría, moveImage() |
+| `AdminServlet.java` | `mostrarPlatos()` → `listarPlatos()` con paginación. `actualizarPlato()` maneja cambio de categoría + nueva foto. Nuevos helpers `validarPlato()`, `getFileExtension()` |
+| `PlatoDAO.java` | 4 métodos de paginación: `listarConPaginacion()`, `listarPorCategoriaConPaginacion()`, `contarTotal()`, `contarPorCategoria()` |
+| `gestion-platos.jsp` | Filtro por categoría, paginación completa, placeholder SVG en onerror |
+| `validaciones.css` | Nuevos estilos: `.filtros-container`, `.filtros-form`, `.filtro-group`, `.btn-limpiar` |
+| `img/placeholder-plato.svg` | **Nuevo**: placeholder genérico para platos sin foto |
 
 ### 6.11 Archivos Creados
 - `src/main/java/ec/edu/monster/restaurante/util/ImageHandler.java`
@@ -210,126 +241,45 @@ _Completada — scripts de test y corrección de errores_
 - `.gitignore`
 
 ### 6.13 Fase 6.3 — Auditoría y Reorganización de Archivos Estáticos ✅
-
-#### Archivos CSS Creados
-- `css/print.css` — Estilos de impresión (@media print) extraídos de factura.jsp y ver-reserva.jsp
-- `css/paginacion.css` — Estilos de paginación para listas admin
-
-#### Archivos JS Creados
-- `js/confirmaciones.js` — 12 funciones SweetAlert (activar/desactivar/edit/reset/pago/cancelar) para toda la app
-- `js/extranjero.js` — Función toggleExtranjero() compartida por 5 formularios de registro
-- `js/menu.js` — Funciones de selección de platos y cantidades (toggleCantidad, cambiarCantidad, actualizarBarra) usadas en menu.jsp y tomar-pedido.jsp
-- `js/modal.js` — Funciones del modal reset-password (abrir/cerrar/validar)
-- `js/form-plato.js` — Preview de imagen, preview en vivo y contador de caracteres
-
-#### Cambios Realizados
-- Extraído TODO CSS inline de gestion-platos, lista-clientes, lista-empleados, form-plato, menu.jsp, tomar-pedido.jsp, factura.jsp, ver-reserva.jsp
-- Extraído TODO JS inline de 15 JSPs a archivos externos
-- Agregado `contextPath` como variable global en JSPs antes de cargar confirmaciones.js
-- Agregado `body { padding-bottom: 90px; }` y estilos `.plato-card.seleccionado` a estilos.css
-- Vinculados archivos externos en todos los JSPs correspondientes
-- Mantenido inline solo SweetAlert message display (usa EL expressions) y lógica específica de página (validación de fechas en reservas.jsp)
+_Completada — extracción de CSS inline y JS inline a archivos externos_
 
 ### 6.14 Fase 6.4 — Correcciones Críticas Prioritarias ✅
+_Completada — 8 problemas críticos resueltos_
 
 ### 6.15 Fase 6.5 — Mejoras en Formulario de Registro de Cliente ✅
+_Completada — validaciones on blur, AJAX, textarea, toggle contraseña_
 
-#### Problemas Corregidos
+### 6.16 Fase 6.6 — Manejo de Platos Inactivos en Modificación de Pedidos ✅
+_Completada — híbrido: platos inactivos se mantienen pero no son modificables_
 
-**1. Tamaño de campo Cédula** — Corregido: ahora ocupa el mismo ancho que identificación extranjera (50% del form-row)
+#### Problema
+Cuando un cliente modifica un pedido PENDIENTE que contiene platos desactivados por el admin después de la creación, esos platos desaparecían del menú y no se podían ver ni conservar.
 
-**2. Comportamiento checkbox "Soy Extranjero"** —
-- `extranjero.js`: toggleExtranjero() ahora agrega clase CSS `field-disabled` (gris/opaco) y `label-disabled` al label
-- Limpia errores (limpiarError) al alternar
-- Usa clases CSS en lugar de solo atributos `disabled`
-
-**3. Validaciones on blur con AJAX** — 8 nuevas funciones en validaciones.js:
-- `validarCedulaOnBlur()`: valida 10 dígitos, módulo 10 + AJAX existencia en BD
-- `validarIdentificacionOnBlur()`: valida 5-20 chars + AJAX existencia
-- `validarNombresOnBlur()`: mínimo 4 chars, solo letras
-- `validarApellidosOnBlur()`: mínimo 4 chars, solo letras
-- `validarTelefonoOnBlur()`: exactamente 10 dígitos
-- `validarUsuarioOnBlur()`: mínimo 4 chars, sin espacios + AJAX existencia
-- `validarCorreoOnBlur()`: formato email + AJAX existencia
-- `validarDireccionOnBlur()`: mínimo 10 chars
-
-**4. Dirección cambiada a textarea** — input text → textarea con:
-- `style="min-height:90px;resize:vertical;"` (~3-4 líneas)
-- Contador de caracteres vía `actualizarContador()`
-- onblur valida mínimo 10 caracteres
-
-**5. Botón "Ver" contraseña** — Agregado:
-- `password-wrapper` (position: relative)
-- Botón `password-toggle` con ícono 👁️ dentro del wrapper
-- `togglePasswordVisibility(id)`: alterna password/text y cambia ícono 👁️ ↔ 🙈
-
-**6. Validación de formulario completa** — `validarFormularioRegistro()`:
-- Deshabilita botón "Registrarme" durante envío
-- Valida TODOS los campos antes de enviar
-- Si hay errores, muestra SweetAlert con lista
-- Previene envío duplicado
-
-**7. AJAX endpoints en Servlet** — `RegistroClienteServlet.doGet()`:
-- `?accion=validarCedula&cedula=XXX` → JSON {valid, message}
-- `?accion=validarIdentificacion&id=XXX` → JSON {valid, message}
-- `?accion=validarUsuario&usuario=XXX` → JSON {valid, message}
-- `?accion=validarCorreo&correo=XXX` → JSON {valid, message}
+#### Solución (Híbrida)
+- **Platos ACTIVOS**: checkbox habilitado, modificable normalmente
+- **Platos INACTIVOS**: checkbox deshabilitado, badge rojo "No disponible", cantidad original preservada
+- **SweetAlert informativo** al cargar si hay platos inactivos: avisa al cliente y ofrece "Cancelar pedido"
+- **Al guardar**: los platos inactivos se mantienen en el pedido con su precio original del momento de la creación
+- **Totales**: se recalculan incluyendo los platos inactivos
 
 #### Archivos Modificados
-- `registro-cliente.jsp` — formulario completo reescrito
-- `RegistroClienteServlet.java` — doGet con AJAX endpoints + validadores
-- `validaciones.js` — 8 nuevas funciones de validación on blur + AJAX + pre-submit
-- `extranjero.js` — visual disabled state con clases CSS
-- `validaciones.css` — field-disabled, label-disabled, password-wrapper/toggle, valid-message, checkbox-extranjero
-- `MIGRACION.md` — esta sección
+| Archivo | Cambio |
+|---|---|
+| `DetallePedido.java` | Nuevo campo `activoEnBD` (boolean, default true) |
+| `MenuServlet.java` | Verifica estado de cada plato en modificación, agrega inactivos al mapa de categorías, guarda `hayPlatosInactivos` en sesión |
+| `menu.jsp` | Render condicional: plato activo (checkbox normal) vs inactivo (disabled + badge + cantidad fija). SweetAlert en DOMContentLoaded |
+| `PedidoServlet.java` | Procesa `platos_inactivos[]` ocultos, preserva detalles inactivos originales con subtotal, recalcula totales |
+| `validaciones.css` | Nuevas clases: `.plato-inactivo`, `.img-inactiva`, `.label-inactivo`, `.badge-no-disponible`, `.cantidad-inactiva` |
 
----
-- Creado `PlatoDAO.listarActivosAgrupados()` que obtiene todos los platos activos y los agrupa por categoría, evitando problemas de type mismatch con id_categoria
-- `MenuServlet` ahora usa `listarActivosAgrupados()` en lugar de `listarPorCategoria()` por categoría
-
-#### PROBLEMA 2 — Modificar pedido no carga items existentes
-- `MenuServlet.doGet()` ahora maneja `?modificar=id`: carga el pedido, valida PENDIENTE y < 24h, guarda detalles en request
-- `menu.jsp`: pre-carga checkboxes marcados y cantidades correctas al modificar
-- `PedidoServlet.doPost()`: detecta `pedidoModificando` en sesión y ACTUALIZA el pedido existente (no crea nuevo)
-- `PedidoDAO.actualizarTodo()`: nuevo método que actualiza detalles completos, subtotal, IVA, servicio, total
-- Script inline en menu.jsp inicializa `seleccionados` con items pre-marcados para que barra inferior funcione
-
-#### PROBLEMA 3 — Botones Activar/Desactivar muestran ambos
-- `AdminServlet.listarClientes()` y `listarEmpleados()` ahora pasan `Map<String, Boolean> estadosActivos` al JSP
-- `lista-clientes.jsp` y `lista-empleados.jsp`: `<% if (isActivo) %>` muestra solo el botón correspondiente
-
-#### PROBLEMA 4 — Modal blanco en Empleados
-- Revisado: modal-reset-password.jsp con `display:none` correcto, window.onclick solo cierra modal
-
-#### PROBLEMA 5 — Resetear Contraseña con modal personalizado
-- Botones en lista-clientes.jsp y lista-empleados.jsp ahora llaman `abrirModalReset()` en vez de `confirmarResetPassword()`
-- Modal HTML personalizado (modal-reset-password.jsp) con campos Nueva Contraseña + Confirmar, validaciones JS
-
-#### PROBLEMA 6 — Cédula deshabilitada en edición
-- `registrar-cliente.jsp` y `registrar-empleado.jsp`: campo cédula tiene `disabled readonly` cuando `esEdicion=true`
-- Mensaje "No se puede modificar la identificación"
-
-#### PROBLEMA 7 — Perfil de Empleado no se actualiza
-- `AdminServlet.actualizarEmpleado()` ahora sincroniza `usuario.perfil` cuando cambia el cargo
-- Cargo "Admin" → perfil "ADMIN", cargo "Mesero" → perfil "EMPLEADO"
-- `UsuarioDAO.actualizarPerfil()`: nuevo método para actualizar el perfil en MongoDB
-
-#### PROBLEMA 8 — Botón Limpiar Filtro en búsquedas
-- `lista-clientes.jsp` y `lista-empleados.jsp`: botón "✕ Limpiar" visible solo cuando hay búsqueda activa
-- Al hacer clic, redirige sin filtros
-
-#### Archivos Modificados
-- `PlatoDAO.java` — listarActivosAgrupados(), refactor listarPorCategoria()
-- `MenuServlet.java` — ?modificar= handling, usa listarActivosAgrupados()
-- `PedidoServlet.java` — detecta modificación vs creación
-- `PedidoDAO.java` — actualizarTodo()
-- `UsuarioDAO.java` — actualizarPerfil()
-- `AdminServlet.java` — estadosActivos map, sync perfil empleado
-- `lista-clientes.jsp` — botón único Activar/Desactivar, abrirModalReset, Limpiar filtro
-- `lista-empleados.jsp` — botón único Activar/Desactivar, abrirModalReset, Limpiar filtro
-- `menu.jsp` — pre-check items modificación + init seleccionados
-- `registrar-cliente.jsp` — cédula disabled en edición
-- `registrar-empleado.jsp` — cédula disabled en edición
+#### Verificación
+- ✅ SweetAlert aparece al modificar pedido con platos inactivos
+- ✅ Platos inactivos se muestran deshabilitados (opacidad 60%, filtro gris)
+- ✅ Badge "No disponible" visible
+- ✅ Cantidad original se mantiene visible en fondo amarillo
+- ✅ Platos activos se pueden modificar normalmente
+- ✅ Al guardar, platos inactivos se mantienen en pedido con su precio original
+- ✅ Totales se calculan correctamente (incluyendo platos inactivos)
+- ✅ Botón "Cancelar pedido" en SweetAlert redirige a cancelación
 
 ---
 
@@ -380,6 +330,14 @@ _Completada — scripts de test y corrección de errores_
 1. Ir a "Mis Reservas"
 2. Si pedido PENDIENTE < 24h: Modificar
 3. Cancelar pedido
+
+**Modificación con platos inactivos:**
+1. Admin desactiva un plato del pedido
+2. Cliente intenta modificar
+3. Debe mostrar SweetAlert "Productos no disponibles"
+4. Plato inactivo se ve gris con badge "No disponible"
+5. Cantidad original preservada
+6. Al guardar, plato inactivo se mantiene
 
 ### 5.3 — Pruebas como EMPLEADO (MESERO)
 

@@ -56,7 +56,7 @@
              box-shadow:0 4px 12px rgba(0,0,0,0.08);margin-bottom:10px;">
             <% for (Plato p : platos) { %>
             <div class="plato-card" id="card_<%= p.getId() %>">
-                <img src="${pageContext.request.contextPath}/<%= p.getFoto() %>"
+                <img src="${pageContext.request.contextPath}/images/<%= p.getFoto() %>"
                      alt="<%= p.getNombre() %>"
                      onerror="this.src='${pageContext.request.contextPath}/img/LOGO_EMPRESA/Monster.jpg'">
                 <div class="plato-card-body">

@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.math.BigDecimal;
 
 @WebServlet("/menu")
 public class MenuServlet extends HttpServlet {
@@ -29,10 +30,11 @@ public class MenuServlet extends HttpServlet {
             return;
         }
 
-        // PROBLEMA 2: Manejar modificación de pedido existente
+        // PROBLEMA 2 + FASE 6.6: Manejar modificacion de pedido existente con platos inactivos
         String modificarId = req.getParameter("modificar");
         if (modificarId != null && !modificarId.isEmpty()) {
             PedidoDAO pedidoDAO = new PedidoDAO();
+            PlatoDAO pDao = new PlatoDAO();
             Pedido pedido = pedidoDAO.buscarPorId(modificarId);
             
             if (pedido != null && "PENDIENTE".equals(pedido.getEstado())) {
@@ -40,10 +42,50 @@ public class MenuServlet extends HttpServlet {
                 long horasTranscurridas = Duration.between(creado, LocalDateTime.now()).toHours();
                 
                 if (horasTranscurridas < 24) {
-                    // Guardar pedido y detalles en sesión para que menu.jsp los pre-cargue
+                    // FASE 6.6: Verificar estado de cada plato del pedido
+                    List<DetallePedido> detalles = pedido.getDetalles();
+                    boolean hayPlatosInactivos = false;
+                    
+                    if (detalles != null) {
+                        for (DetallePedido detalle : detalles) {
+                            Plato plato = pDao.buscarPorId(detalle.getIdPlato());
+                            if (plato != null && !plato.isActivo()) {
+                                hayPlatosInactivos = true;
+                                detalle.setActivoEnBD(false);
+                            }
+                        }
+                    }
+                    
+                    session.setAttribute("hayPlatosInactivos", hayPlatosInactivos);
                     session.setAttribute("pedidoModificando", pedido);
-                    req.setAttribute("detallesModificar", pedido.getDetalles());
+                    req.setAttribute("detallesModificar", detalles);
                     req.setAttribute("modificandoId", modificarId);
+                    
+                    // Cargar TODOS los platos activos agrupados
+                    Map<String, List<Plato>> platosAgrupados = pDao.listarActivosAgrupados();
+                    
+                    // FASE 6.6: Agregar platos inactivos del pedido al mapa (key = id_categoria)
+                    if (detalles != null) {
+                        for (DetallePedido det : detalles) {
+                            Plato platoInactivo = pDao.buscarPorId(det.getIdPlato());
+                            if (platoInactivo != null && !platoInactivo.isActivo()) {
+                                String catId = platoInactivo.getIdCategoria();
+                                if (catId == null) catId = "";
+                                List<Plato> lista = platosAgrupados.get(catId);
+                                if (lista == null) {
+                                    lista = new ArrayList<>();
+                                    platosAgrupados.put(catId, lista);
+                                }
+                                lista.add(platoInactivo);
+                            }
+                        }
+                    }
+                    
+                    req.setAttribute("platosPorCategoria", platosAgrupados);
+                    req.setAttribute("categorias", new CategoriaDAO().listar());
+                    req.setAttribute("modoModificacion", true);
+                    req.getRequestDispatcher("/vistas/cliente/menu.jsp").forward(req, resp);
+                    return;
                 } else {
                     session.removeAttribute("pedidoModificando");
                     resp.sendRedirect(req.getContextPath() + "/reservas?error=noModificable");
@@ -56,6 +98,7 @@ public class MenuServlet extends HttpServlet {
             }
         } else {
             session.removeAttribute("pedidoModificando");
+            session.removeAttribute("hayPlatosInactivos");
         }
 
         // PROBLEMA 1: Usar listarActivosAgrupados para evitar problemas de tipo id_categoria
@@ -63,7 +106,7 @@ public class MenuServlet extends HttpServlet {
         List<Categoria> categorias = new CategoriaDAO().listar();
         Map<String, List<Plato>> platosActivos = pDao.listarActivosAgrupados();
         
-        // Organizar por categoría, filtrando solo las que tienen platos activos
+        // Organizar por categoria, filtrando solo las que tienen platos activos
         Map<String, List<Plato>> platosPorCategoria = new LinkedHashMap<>();
         for (Categoria cat : categorias) {
             List<Plato> platos = platosActivos.get(cat.getId());

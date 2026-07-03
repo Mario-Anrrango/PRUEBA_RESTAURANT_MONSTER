@@ -3,8 +3,10 @@ package ec.edu.monster.restaurante.dao;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;
 import ec.edu.monster.restaurante.modelo.Plato;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.Decimal128;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -114,6 +116,63 @@ public class PlatoDAO {
             MongoDBConnection.filterById(id),
             new Document("$set", new Document("activo", false))
         ).getModifiedCount() > 0;
+    }
+
+    // ===== MÉTODOS DE PAGINACIÓN =====
+
+    public List<Plato> listarConPaginacion(int pagina, int registrosPorPagina) {
+        List<Plato> platos = new ArrayList<>();
+        int skip = (pagina - 1) * registrosPorPagina;
+        for (Document doc : collection.find()
+                .sort(Sorts.ascending("nombre"))
+                .skip(skip)
+                .limit(registrosPorPagina)) {
+            platos.add(mapearPlato(doc));
+        }
+        return platos;
+    }
+
+    public List<Plato> listarPorCategoriaConPaginacion(String categoria, int pagina, int registrosPorPagina) {
+        List<Plato> platos = new ArrayList<>();
+        int skip = (pagina - 1) * registrosPorPagina;
+        // Manejar tanto id_categoria como string ("4") como numero (4) - compatibilidad migracion
+        Bson filter = buildCategoriaFilter(categoria);
+        for (Document doc : collection.find(filter)
+                .sort(Sorts.ascending("nombre"))
+                .skip(skip)
+                .limit(registrosPorPagina)) {
+            platos.add(mapearPlato(doc));
+        }
+        return platos;
+    }
+
+    public int contarTotal() {
+        return (int) collection.countDocuments();
+    }
+
+    public int contarPorCategoria(String categoria) {
+        Bson filter = buildCategoriaFilter(categoria);
+        return (int) collection.countDocuments(filter);
+    }
+
+    // ===== FIN MÉTODOS DE PAGINACIÓN =====
+
+    /**
+     * Construye un filtro para id_categoria que funciona con datos migrados (integer) y nuevos (string).
+     */
+    private Bson buildCategoriaFilter(String categoria) {
+        List<Bson> condiciones = new ArrayList<>();
+        condiciones.add(Filters.eq("id_categoria", categoria)); // string: "4"
+        try {
+            int numericId = Integer.parseInt(categoria);
+            condiciones.add(Filters.eq("id_categoria", numericId)); // int32: 4
+        } catch (NumberFormatException e) {
+            // No es un numero, solo usar string
+        }
+        if (condiciones.size() > 1) {
+            return Filters.or(condiciones);
+        }
+        return condiciones.get(0);
     }
 
     private Plato mapearPlato(Document doc) {

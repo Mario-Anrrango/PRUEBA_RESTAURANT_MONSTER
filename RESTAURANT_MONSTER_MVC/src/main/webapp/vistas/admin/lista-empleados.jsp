@@ -38,21 +38,30 @@
         <a href="${pageContext.request.contextPath}/admin?accion=formEmpleado" class="btn btn-primario">+ Nuevo Empleado</a>
     </div>
 
-    <!-- Mensajes SweetAlert -->
-    <c:if test="${not empty sessionScope.mensaje}">
+    <!-- Mensajes SweetAlert (validación JS para evitar modal blanco) -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        Swal.fire({
-            icon: '${sessionScope.tipoMensaje}',
-            title: '${sessionScope.mensaje}',
-            timer: 3000,
-            showConfirmButton: false
-        });
+        var mensaje = '${sessionScope.mensaje}';
+        var tipoMensaje = '${sessionScope.tipoMensaje}';
+        if (mensaje && mensaje.trim() !== '' && mensaje !== 'null') {
+            var icono = 'info';
+            if (tipoMensaje === 'success') icono = 'success';
+            else if (tipoMensaje === 'error') icono = 'error';
+            else if (tipoMensaje === 'warning') icono = 'warning';
+            Swal.fire({
+                icon: icono,
+                title: tipoMensaje === 'success' ? '\u00c9xito' :
+                       tipoMensaje === 'error' ? 'Error' :
+                       tipoMensaje === 'warning' ? 'Advertencia' : 'Informaci\u00f3n',
+                text: mensaje,
+                timer: 3000,
+                showConfirmButton: false
+            });
+        }
     });
     </script>
     <c:remove var="mensaje" scope="session"/>
     <c:remove var="tipoMensaje" scope="session"/>
-    </c:if>
 
     <form method="get" action="${pageContext.request.contextPath}/admin" class="busqueda-form" style="margin-bottom:15px;">
         <input type="hidden" name="accion" value="listarEmpleados">

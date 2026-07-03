@@ -16,9 +16,9 @@ import java.util.Map;
 
 @WebServlet("/admin")
 @MultipartConfig(
-    fileSizeThreshold = 1024 * 1024,    // 1 MB
-    maxFileSize = 50 * 1024 * 1024,     // 50 MB
-    maxRequestSize = 50 * 1024 * 1024   // 50 MB
+    fileSizeThreshold = 1024 * 1024,        // 1 MB
+    maxFileSize = 5 * 1024 * 1024,          // 5 MB
+    maxRequestSize = 5 * 1024 * 1024        // 5 MB
 )
 public class AdminServlet extends HttpServlet {
 
@@ -33,7 +33,7 @@ public class AdminServlet extends HttpServlet {
         if (accion == null) accion = "dashboard";
 
         switch (accion) {
-            case "listarPlatos":      mostrarPlatos(req, resp);              break;
+            case "listarPlatos":      listarPlatos(req, resp);               break;
             case "nuevoPlato":        mostrarFormPlato(req, resp, null);       break;
             case "editarPlato":       mostrarFormPlato(req, resp, req.getParameter("id")); break;
             case "eliminarPlato":     eliminarPlato(req, resp);               break;
@@ -75,22 +75,60 @@ public class AdminServlet extends HttpServlet {
 
     // ---------- PLATOS ----------
 
-    private void mostrarPlatos(HttpServletRequest req, HttpServletResponse resp)
+    private void listarPlatos(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        List<Plato> platos = new PlatoDAO().listarTodos();
-        req.setAttribute("platos", platos);
-        
-        // Pasar mensajes de sesión a request para SweetAlert
-        HttpSession session = req.getSession();
-        String mensaje = (String) session.getAttribute("mensaje");
-        if (mensaje != null) {
-            req.setAttribute("mensaje", mensaje);
-            req.setAttribute("tipoMensaje", session.getAttribute("tipoMensaje"));
-            session.removeAttribute("mensaje");
-            session.removeAttribute("tipoMensaje");
+        // Obtener parámetros de paginación
+        int pagina = 1;
+        int registrosPorPagina = 5; // Default 5 registros
+        if (req.getParameter("pagina") != null) {
+            try { pagina = Integer.parseInt(req.getParameter("pagina")); } catch (NumberFormatException e) {}
+        }
+        if (req.getParameter("registros") != null) {
+            try { registrosPorPagina = Integer.parseInt(req.getParameter("registros")); } catch (NumberFormatException e) {}
         }
         
-        req.getRequestDispatcher("/vistas/admin/gestion-platos.jsp").forward(req, resp);
+        // Obtener filtro de categoría
+        String categoriaFiltro = req.getParameter("categoria");
+        
+        try {
+            PlatoDAO platoDAO = new PlatoDAO();
+            CategoriaDAO categoriaDAO = new CategoriaDAO();
+            
+            // Obtener platos con paginación y filtro
+            List<Plato> platos;
+            int totalRegistros;
+            
+            if (categoriaFiltro != null && !categoriaFiltro.isEmpty() && !"TODOS".equals(categoriaFiltro)) {
+                platos = platoDAO.listarPorCategoriaConPaginacion(categoriaFiltro, pagina, registrosPorPagina);
+                totalRegistros = platoDAO.contarPorCategoria(categoriaFiltro);
+            } else {
+                platos = platoDAO.listarConPaginacion(pagina, registrosPorPagina);
+                totalRegistros = platoDAO.contarTotal();
+                categoriaFiltro = "TODOS";
+            }
+            
+            int totalPaginas = (int) Math.ceil((double) totalRegistros / registrosPorPagina);
+            if (totalPaginas < 1) totalPaginas = 1;
+            
+            // Obtener categorías para el filtro
+            List<Categoria> categorias = categoriaDAO.listar();
+            
+            req.setAttribute("platos", platos);
+            req.setAttribute("pagina", pagina);
+            req.setAttribute("totalPaginas", totalPaginas);
+            req.setAttribute("totalRegistros", totalRegistros);
+            req.setAttribute("registrosPorPagina", registrosPorPagina);
+            req.setAttribute("categoriaFiltro", categoriaFiltro);
+            req.setAttribute("categorias", categorias);
+            
+            // Los mensajes se mantienen en session para que el JSP los lea con sessionScope
+            // El propio JSP los elimina con <c:remove> despues de mostrarlos
+            
+            req.getRequestDispatcher("/vistas/admin/gestion-platos.jsp").forward(req, resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ServletException("Error al listar platos", e);
+        }
     }
 
     private void mostrarFormPlato(HttpServletRequest req, HttpServletResponse resp, String id)
@@ -103,11 +141,18 @@ public class AdminServlet extends HttpServlet {
 
     private void guardarPlato(HttpServletRequest req, HttpServletResponse resp)
             throws IOException, ServletException {
+        String idCategoria = req.getParameter("idCategoria");
+        
+        // Obtener nombre de categoría para el directorio de imágenes
+        CategoriaDAO cDao = new CategoriaDAO();
+        Categoria cat = cDao.buscarPorId(idCategoria);
+        String nombreCategoria = (cat != null) ? cat.getNombre() : "SIN_CATEGORIA";
+        
         Plato p = new Plato();
         p.setNombre(req.getParameter("nombre").trim());
         p.setDescripcion(req.getParameter("descripcion").trim());
         p.setPrecio(new BigDecimal(req.getParameter("precio")));
-        p.setIdCategoria(req.getParameter("idCategoria"));
+        p.setIdCategoria(idCategoria);
         p.setActivo(true);
 
         // Procesar imagen
@@ -125,14 +170,20 @@ public class AdminServlet extends HttpServlet {
                     resp.sendRedirect("admin?accion=listarPlatos");
                     return;
                 }
-                String rutaRelativa = ImageHandler.saveImage(filePart, creado.getId());
+                String rutaRelativa = ImageHandler.saveImage(filePart, creado.getId(), nombreCategoria);
                 if (rutaRelativa != null) {
                     creado.setFoto(rutaRelativa);
                     dao.actualizar(creado);
+                    session.setAttribute("mensaje", "Plato creado correctamente");
+                    session.setAttribute("tipoMensaje", "success");
+                } else {
+                    session.setAttribute("mensaje", "Plato creado sin imagen. Formato no soportado. Use JPG, JPEG, PNG o WEBP");
+                    session.setAttribute("tipoMensaje", "warning");
                 }
+            } else {
+                session.setAttribute("mensaje", "Plato creado correctamente");
+                session.setAttribute("tipoMensaje", "success");
             }
-            session.setAttribute("mensaje", "Plato creado correctamente");
-            session.setAttribute("tipoMensaje", "success");
         } else {
             session.setAttribute("mensaje", "Error al crear el plato");
             session.setAttribute("tipoMensaje", "error");
@@ -142,43 +193,123 @@ public class AdminServlet extends HttpServlet {
 
     private void actualizarPlato(HttpServletRequest req, HttpServletResponse resp)
             throws IOException, ServletException {
-        PlatoDAO dao = new PlatoDAO();
-        String idStr = req.getParameter("id");
-        Plato p = dao.buscarPorId(idStr);
-        if (p != null) {
-            p.setNombre(req.getParameter("nombre").trim());
-            p.setDescripcion(req.getParameter("descripcion").trim());
-            p.setPrecio(new BigDecimal(req.getParameter("precio")));
-            p.setIdCategoria(req.getParameter("idCategoria"));
-            String activoStr = req.getParameter("activo_campo");
-            p.setActivo("1".equals(activoStr));
-
-            // Validar tamaño de imagen antes de guardar
+        String id = req.getParameter("id");
+        String nombre = req.getParameter("nombre").trim();
+        String idCategoria = req.getParameter("idCategoria");
+        String precioStr = req.getParameter("precio");
+        String descripcion = req.getParameter("descripcion").trim();
+        String fotoActual = req.getParameter("fotoActual");
+        
+        HttpSession session = req.getSession();
+        
+        // Validaciones server-side
+        java.util.List<String> errores = validarPlato(nombre, idCategoria, precioStr, descripcion);
+        
+        if (!errores.isEmpty()) {
+            session.setAttribute("mensaje", String.join(" | ", errores));
+            session.setAttribute("tipoMensaje", "error");
+            resp.sendRedirect("admin?accion=editarPlato&id=" + id);
+            return;
+        }
+        
+        try {
+            PlatoDAO platoDAO = new PlatoDAO();
+            Plato plato = platoDAO.buscarPorId(id);
+            
+            if (plato == null) {
+                session.setAttribute("mensaje", "Error: No se encontró el plato");
+                session.setAttribute("tipoMensaje", "error");
+                resp.sendRedirect("admin?accion=listarPlatos");
+                return;
+            }
+            
+            // Obtener nombre de categoría para el directorio
+            CategoriaDAO cDao = new CategoriaDAO();
+            Categoria cat = cDao.buscarPorId(idCategoria);
+            String nombreCategoria = (cat != null) ? cat.getNombre() : "SIN_CATEGORIA";
+            String categoriaAnteriorId = plato.getIdCategoria();
+            
+            // Actualizar datos básicos
+            plato.setNombre(nombre);
+            plato.setPrecio(new BigDecimal(precioStr));
+            plato.setDescripcion(descripcion);
+            plato.setIdCategoria(idCategoria);
+            
+            // Detectar si la foto actual está en formato antiguo (img/CATEGORIA/archivo)
+            boolean esRutaAntigua = fotoActual != null && fotoActual.startsWith("img/");
+            
+            // Procesar foto
             Part filePart = req.getPart("foto");
+            StringBuilder detalle = new StringBuilder();
+            boolean fotoCambiada = false;
+            boolean fotoMigrada = false;
+            boolean categoriaCambiada = categoriaAnteriorId != null && !categoriaAnteriorId.equals(idCategoria);
+            
             if (filePart != null && filePart.getSize() > 0) {
+                // Se subió una foto NUEVA
                 if (!ImageHandler.isValidSize(filePart.getSize())) {
-                    HttpSession session = req.getSession();
                     session.setAttribute("mensaje", "La imagen excede el tamaño máximo de 5MB");
                     session.setAttribute("tipoMensaje", "error");
-                    resp.sendRedirect("admin?accion=editarPlato&id=" + idStr);
+                    resp.sendRedirect("admin?accion=editarPlato&id=" + id);
                     return;
                 }
-                String rutaRelativa = ImageHandler.saveImage(filePart, p.getId());
-                if (rutaRelativa != null) {
-                    p.setFoto(rutaRelativa);
+                // Si la foto anterior es de ruta antigua, migrarla primero
+                if (esRutaAntigua) {
+                    String realPath = getServletContext().getRealPath("/");
+                    // fotoActual ya contiene la ruta completa desde la raiz del WAR: "img/ENTRADA/bolon.jpg"
+                    String oldAbsolutePath = realPath + "/" + fotoActual;
+                    String extension = getFileExtension(fotoActual);
+                    ImageHandler.migrateImage(oldAbsolutePath, plato.getId(), nombreCategoria, extension);
+                    // La imagen nueva reemplazará a la migrada abajo
+                } else {
+                    // Eliminar foto anterior si existe (solo si es de ruta nueva)
+                    if (fotoActual != null && !fotoActual.isEmpty()) {
+                        ImageHandler.deleteImage(fotoActual);
+                    }
                 }
+                // Guardar nueva imagen en la categoría actual
+                String rutaRelativa = ImageHandler.saveImage(filePart, plato.getId(), nombreCategoria);
+                if (rutaRelativa != null) {
+                    plato.setFoto(rutaRelativa);
+                    fotoCambiada = true;
+                } else {
+                    session.setAttribute("mensaje", "Formato de imagen no soportado. Use JPG, JPEG, PNG o WEBP");
+                    session.setAttribute("tipoMensaje", "warning");
+                }
+            } else if (esRutaAntigua) {
+                // No se subió foto nueva, pero la foto actual es de ruta antigua → migrar
+                String realPath = getServletContext().getRealPath("/");
+                // fotoActual ya contiene la ruta completa desde la raiz del WAR: "img/ENTRADA/bolon.jpg"
+                String oldAbsolutePath = realPath + "/" + fotoActual;
+                String extension = getFileExtension(fotoActual);
+                String nuevaRuta = ImageHandler.migrateImage(oldAbsolutePath, plato.getId(), nombreCategoria, extension);
+                plato.setFoto(nuevaRuta);
+                fotoMigrada = true;
+            } else if (categoriaCambiada && fotoActual != null && !fotoActual.isEmpty()) {
+                // No se subió foto nueva, PERO cambió la categoría → mover imagen
+                ImageHandler.moveImage(fotoActual, nombreCategoria, plato.getId());
+                String extension = getFileExtension(fotoActual);
+                plato.setFoto("platos/" + nombreCategoria + "/" + plato.getId() + extension);
             }
-
-            dao.actualizar(p);
-            HttpSession session = req.getSession();
-            session.setAttribute("mensaje", "Plato actualizado correctamente");
+            // Si no se subió foto y no cambió categoría, mantener la foto existente
+            
+            platoDAO.actualizar(plato);
+            
+            // Mensaje detallado
+            detalle.append("Plato actualizado correctamente");
+            if (fotoCambiada && !fotoMigrada) detalle.append(" - Foto actualizada");
+            if (categoriaCambiada) detalle.append(" - Categoría cambiada a ").append(nombreCategoria);
+            
+            session.setAttribute("mensaje", detalle.toString());
             session.setAttribute("tipoMensaje", "success");
-        } else {
-            HttpSession session = req.getSession();
-            session.setAttribute("mensaje", "Error: No se encontró el plato");
+            resp.sendRedirect("admin?accion=listarPlatos");
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            session.setAttribute("mensaje", "Error al actualizar: " + e.getMessage());
             session.setAttribute("tipoMensaje", "error");
+            resp.sendRedirect("admin?accion=editarPlato&id=" + id);
         }
-        resp.sendRedirect("admin?accion=listarPlatos");
     }
 
     private void eliminarPlato(HttpServletRequest req, HttpServletResponse resp)
@@ -551,6 +682,49 @@ public class AdminServlet extends HttpServlet {
             }
         }
         resp.sendRedirect("admin?accion=listarEmpleados");
+    }
+
+    // ---------- HELPERS ----------
+
+    private String getFileExtension(String fileName) {
+        if (fileName == null || fileName.isEmpty()) {
+            return ".jpg";
+        }
+        int lastDotIndex = fileName.lastIndexOf(".");
+        if (lastDotIndex > 0) {
+            return fileName.substring(lastDotIndex);
+        }
+        return ".jpg";
+    }
+
+    private java.util.List<String> validarPlato(String nombre, String idCategoria, String precioStr, String descripcion) {
+        java.util.List<String> errores = new java.util.ArrayList<>();
+        
+        if (nombre.trim().length() < 4 || nombre.trim().length() > 50) {
+            errores.add("Nombre: 4-50 caracteres");
+        }
+        if (!nombre.matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$")) {
+            errores.add("Nombre: solo letras permitidas");
+        }
+        if (idCategoria == null || idCategoria.isEmpty() || "-- Seleccionar --".equals(idCategoria)) {
+            errores.add("Debe seleccionar una categoría");
+        }
+        
+        try {
+            BigDecimal precio = new BigDecimal(precioStr);
+            if (precio.compareTo(new BigDecimal("0.10")) < 0 || 
+                precio.compareTo(new BigDecimal("99.99")) > 0) {
+                errores.add("Precio: 0.10 a 99.99");
+            }
+        } catch (NumberFormatException e) {
+            errores.add("Precio inválido");
+        }
+        
+        if (descripcion.trim().length() < 10 || descripcion.trim().length() > 300) {
+            errores.add("Descripción: 10-300 caracteres");
+        }
+        
+        return errores;
     }
 
     // ---------- RESET PASSWORD ----------

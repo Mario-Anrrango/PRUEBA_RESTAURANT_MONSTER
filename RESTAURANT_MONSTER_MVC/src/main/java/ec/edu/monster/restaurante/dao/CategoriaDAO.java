@@ -5,6 +5,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import ec.edu.monster.restaurante.modelo.Categoria;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,7 +27,15 @@ public class CategoriaDAO {
     }
 
     public Categoria buscarPorId(String id) {
-        Document doc = collection.find(MongoDBConnection.filterById(id)).first();
+        // Manejar IDs numericos ("1", "2") como enteros porque la coleccion categorias
+        // tiene _id como int32 (1, 2, 3...) del script de migracion, no como string.
+        Bson filter;
+        if (id != null && id.matches("\\d+")) {
+            filter = Filters.eq("_id", Integer.parseInt(id));
+        } else {
+            filter = MongoDBConnection.filterById(id);
+        }
+        Document doc = collection.find(filter).first();
         return doc != null ? mapearCategoria(doc) : null;
     }
 

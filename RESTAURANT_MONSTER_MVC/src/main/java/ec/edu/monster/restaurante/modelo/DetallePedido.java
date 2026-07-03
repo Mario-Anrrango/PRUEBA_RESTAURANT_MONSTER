@@ -36,5 +36,10 @@ public class DetallePedido implements Serializable {
     public BigDecimal getPrecioUnitario()        { return precioUnitario; }
     public void setPrecioUnitario(BigDecimal p)  { this.precioUnitario = p; }
 
+    private boolean activoEnBD = true;
+
+    public boolean isActivoEnBD()                  { return activoEnBD; }
+    public void setActivoEnBD(boolean v)           { this.activoEnBD = v; }
+
     public BigDecimal getSubtotalLinea()         { return precioUnitario.multiply(BigDecimal.valueOf(cantidad)); }
 }

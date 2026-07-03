@@ -464,6 +464,14 @@ textarea.form-control { border-radius: 12px; resize: vertical; min-height: 90px;
 .barra-pedido span { font-size: 1.05em; }
 .barra-pedido .total-barra { font-weight: 700; font-size: 1.2em; color: var(--dorado); }
 
+/* ===== MODAL RESET PASSWORD (siempre oculto hasta que se abre) ===== */
+#modalResetPassword {
+    display: none !important;
+}
+#modalResetPassword.visible {
+    display: flex !important;
+}
+
 /* ===== BÚSQUEDA ===== */
 .busqueda-form {
     display: flex;
@@ -475,6 +483,10 @@ textarea.form-control { border-radius: 12px; resize: vertical; min-height: 90px;
 .busqueda-form .form-grupo { flex: 1; min-width: 200px; }
 
 /* ===== RESPONSIVE ===== */
+/* Máximo 4 columnas en pantallas grandes */
+@media (min-width: 1200px) {
+    .menu-grid { grid-template-columns: repeat(4, 1fr); }
+}
 @media (max-width: 768px) {
     .contenedor { padding: 20px 16px; margin: 15px; }
     .form-row { flex-direction: column; gap: 0; }
