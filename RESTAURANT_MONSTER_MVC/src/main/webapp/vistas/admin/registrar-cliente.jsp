@@ -107,11 +107,11 @@
                     <small style="color:#888;font-size:0.8em;">10 dígitos numéricos</small>
                 </div>
                 <div class="form-grupo" id="grupo-identificacion" style="display:none;">
-                    <label>Identificación Extranjera *</label>
-                    <input type="text" id="identificacionExtranjera" name="identificacionExtranjera"
-                           class="form-control" disabled
-                           placeholder="Pasaporte o ID extranjero" minlength="5" maxlength="20"
-                           onblur="validarIdentificacionOnBlur()">
+                    <label>Identificación Extranjera *</label>                            <input type="text" id="identificacionExtranjera" name="identificacionExtranjera"
+                                   class="form-control" disabled
+                                   placeholder="Pasaporte o ID extranjero" minlength="5" maxlength="20"
+                                   oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').trim()"
+                                   onblur="validarIdentificacionOnBlur()">
                     <div id="identificacion-message" class="validation-message"></div>
                     <small style="color:#888;font-size:0.8em;">5-20 caracteres alfanuméricos</small>
                 </div>

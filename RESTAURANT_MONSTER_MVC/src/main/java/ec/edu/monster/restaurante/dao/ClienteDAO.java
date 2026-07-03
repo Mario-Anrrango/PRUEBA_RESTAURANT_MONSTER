@@ -10,6 +10,7 @@ import org.bson.conversions.Bson;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class ClienteDAO {
 
@@ -47,9 +48,11 @@ public class ClienteDAO {
     
     public List<Cliente> buscarPorCedulaOIdentificacion(String valor) {
         List<Cliente> resultados = new ArrayList<>();
+        // Case-insensitive regex
+        Pattern pattern = Pattern.compile("^" + Pattern.quote(valor) + "$", Pattern.CASE_INSENSITIVE);
         Bson filtro = Filters.or(
-            Filters.eq("cedula", valor),
-            Filters.eq("identificacion_extranjera", valor)
+            Filters.regex("cedula", pattern),
+            Filters.regex("identificacion_extranjera", pattern)
         );
         for (Document doc : collection.find(filtro)) {
             resultados.add(mapearCliente(doc));

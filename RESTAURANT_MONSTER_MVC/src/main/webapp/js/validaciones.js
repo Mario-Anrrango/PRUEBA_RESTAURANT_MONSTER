@@ -126,7 +126,7 @@ function validarApellidosOnBlur() {
 function validarCedulaOnBlur() {
     var input = document.getElementById('cedula');
     var msgId = 'cedula-message';
-    if (input.disabled) { limpiarError(input, msgId); return true; }
+    if (!input || input.disabled) { limpiarError(input, msgId); return true; }
     var valor = input.value.trim();
 
     if (valor.length === 0) { mostrarError(input, msgId, 'Campo obligatorio'); return false; }
@@ -162,12 +162,13 @@ function validarCedulaOnBlur() {
 function validarIdentificacionOnBlur() {
     var input = document.getElementById('identificacionExtranjera');
     var msgId = 'identificacion-message';
-    if (input.disabled) { limpiarError(input, msgId); return true; }
+    if (!input || input.disabled) { limpiarError(input, msgId); return true; }
     var valor = input.value.trim();
 
     if (valor.length === 0) { mostrarError(input, msgId, 'Campo obligatorio'); return false; }
     if (valor.length < 5) { mostrarError(input, msgId, 'Mínimo 5 caracteres'); return false; }
     if (valor.length > 20) { mostrarError(input, msgId, 'Máximo 20 caracteres'); return false; }
+    if (!/^[a-zA-Z0-9]+$/.test(valor)) { mostrarError(input, msgId, 'Solo letras y números permitidos'); return false; }
 
     // AJAX
     var xhr = new XMLHttpRequest();

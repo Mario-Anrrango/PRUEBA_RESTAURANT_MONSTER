@@ -64,6 +64,7 @@
                             <input type="text" id="identificacionExtranjera" name="identificacionExtranjera"
                                    class="form-control" disabled
                                    placeholder="Pasaporte o ID extranjero" minlength="5" maxlength="20"
+                                   oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').trim()"
                                    onblur="validarIdentificacionOnBlur()">
                             <small style="color:#888;font-size:0.8em;">5-20 caracteres alfanuméricos</small>
                             <div id="identificacion-message" class="validation-message"></div>

@@ -66,7 +66,8 @@
         <input type="hidden" name="accion" value="listarClientes">
         <div class="form-grupo">
             <input type="text" name="busqueda" class="form-control" placeholder="Buscar por cédula o identificación..."
-                   value="<%= request.getParameter("busqueda") != null ? request.getParameter("busqueda") : "" %>">
+                   value="<%= request.getParameter("busqueda") != null ? request.getParameter("busqueda") : "" %>"
+                   oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').trim()">
         </div>
         <button type="submit" class="btn btn-primario" style="height:44px;">Buscar</button>
         <% if (request.getParameter("busqueda") != null && !request.getParameter("busqueda").isEmpty()) { %>
@@ -81,7 +82,7 @@
     <table class="tabla">
         <thead>
             <tr>
-                <th>Nombres</th><th>Apellidos</th><th>Cédula</th>
+                <th>Nombres</th><th>Apellidos</th><th>Cédula / Identificación</th>
                 <th>Teléfono</th><th>Correo</th><th>Acciones</th>
             </tr>
         </thead>
@@ -90,7 +91,17 @@
             <tr>
                 <td><%= c.getNombres() %></td>
                 <td><%= c.getApellidos() %></td>
-                <td><%= c.getCedula() != null ? c.getCedula() : c.getIdentificacionExtranjera() %></td>
+                <td>
+                    <% if (c.isEsExtranjero() || (c.getIdentificacionExtranjera() != null && !c.getIdentificacionExtranjera().isEmpty())) { %>
+                        <span class="badge-extranjero" title="Identificación Extranjera">
+                            &#x1F516; <%= c.getIdentificacionExtranjera() %>
+                        </span>
+                    <% } else { %>
+                        <span class="badge-ecuatoriano" title="Cédula Ecuatoriana">
+                            &#x1F194; <%= c.getCedula() %>
+                        </span>
+                    <% } %>
+                </td>
                 <td><%= c.getTelefono() != null ? c.getTelefono() : "-" %></td>
                 <td><%= c.getCorreo() != null ? c.getCorreo() : "-" %></td>
                 <td>
@@ -167,5 +178,18 @@
 <script>var contextPath = '${pageContext.request.contextPath}';</script>
 <script src="${pageContext.request.contextPath}/js/confirmaciones.js"></script>
 <script src="${pageContext.request.contextPath}/js/validaciones.js"></script>
+
+<!-- Limpiar mensaje de sesión después de mostrarlo (prevenir persistencia entre páginas) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var mensaje = '${sessionScope.mensaje}';
+    if (mensaje && mensaje.trim() !== '' && mensaje !== 'null') {
+        // SweetAlert ya se mostró arriba (timer 3s). Esperar 4s y limpiar sesión.
+        setTimeout(function() {
+            fetch(contextPath + '/admin?accion=limpiarMensaje');
+        }, 4000);
+    }
+});
+</script>
 </body>
 </html>

@@ -3,16 +3,19 @@
 // =========================================================
 
 function abrirModalReset(id, perfil) {
+    var modal = document.getElementById('modalResetPassword');
+    if (!modal) return;
     document.getElementById('resetUserId').value = id;
     document.getElementById('resetUserPerfil').value = perfil;
-    document.getElementById('modalResetPassword').classList.add('visible');
+    modal.style.display = 'flex';
     document.getElementById('newPassword').value = '';
     document.getElementById('confirmPassword').value = '';
     document.getElementById('passwordError').style.display = 'none';
 }
 
 function cerrarModal() {
-    document.getElementById('modalResetPassword').classList.remove('visible');
+    var modal = document.getElementById('modalResetPassword');
+    if (modal) modal.style.display = 'none';
 }
 
 function validarResetPassword() {

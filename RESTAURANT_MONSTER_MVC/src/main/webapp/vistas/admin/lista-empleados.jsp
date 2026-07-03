@@ -169,5 +169,18 @@
 <script>var contextPath = '${pageContext.request.contextPath}';</script>
 <script src="${pageContext.request.contextPath}/js/confirmaciones.js"></script>
 <script src="${pageContext.request.contextPath}/js/validaciones.js"></script>
+
+<!-- Limpiar mensaje de sesión después de mostrarlo (prevenir persistencia entre páginas) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var mensaje = '${sessionScope.mensaje}';
+    if (mensaje && mensaje.trim() !== '' && mensaje !== 'null') {
+        // SweetAlert ya se mostró arriba (timer 3s). Esperar 4s y limpiar sesión.
+        setTimeout(function() {
+            fetch(contextPath + '/admin?accion=limpiarMensaje');
+        }, 4000);
+    }
+});
+</script>
 </body>
 </html>

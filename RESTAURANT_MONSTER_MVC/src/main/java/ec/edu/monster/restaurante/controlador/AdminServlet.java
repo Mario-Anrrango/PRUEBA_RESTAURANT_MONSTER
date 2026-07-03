@@ -48,6 +48,7 @@ public class AdminServlet extends HttpServlet {
             case "desactivarEmpleado":desactivarEmpleado(req, resp);          break;
             case "listarClientes":    listarClientes(req, resp);              break;
             case "listarEmpleados":   listarEmpleados(req, resp);             break;
+            case "limpiarMensaje":    limpiarMensaje(req, resp);               break;
             default:                  req.getRequestDispatcher("/vistas/admin/dashboard.jsp").forward(req, resp);
         }
     }
@@ -411,7 +412,18 @@ public class AdminServlet extends HttpServlet {
 
     private void registrarCliente(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        String cedula    = req.getParameter("cedula").trim();
+        String cedulaParam = req.getParameter("cedula");
+        String cedula = (cedulaParam != null) ? cedulaParam.trim() : "";
+        String identificacionExtranjeraParam = req.getParameter("identificacionExtranjera");
+        String identificacionExtranjera = (identificacionExtranjeraParam != null) ? identificacionExtranjeraParam.trim() : "";
+        
+        // Validar que al menos uno tenga valor
+        if (cedula.isEmpty() && identificacionExtranjera.isEmpty()) {
+            req.setAttribute("error", "Debe ingresar cédula o identificación extranjera");
+            req.getRequestDispatcher("/vistas/admin/registrar-cliente.jsp").forward(req, resp);
+            return;
+        }
+        
         ClienteDAO cDao  = new ClienteDAO();
         UsuarioDAO uDao  = new UsuarioDAO();
 
@@ -437,7 +449,7 @@ public class AdminServlet extends HttpServlet {
         c.setNombres(req.getParameter("nombres").trim());
         c.setApellidos(req.getParameter("apellidos").trim());
         c.setCedula(cedula);
-        c.setIdentificacionExtranjera(req.getParameter("identificacionExtranjera"));
+        c.setIdentificacionExtranjera(identificacionExtranjera);
         c.setEsExtranjero("on".equals(req.getParameter("esExtranjero")));
         c.setDireccion(req.getParameter("direccion").trim());
         c.setCorreo(req.getParameter("correo").trim());
@@ -541,7 +553,18 @@ public class AdminServlet extends HttpServlet {
 
     private void registrarEmpleado(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        String cedula   = req.getParameter("cedula").trim();
+        String cedulaParam = req.getParameter("cedula");
+        String cedula = (cedulaParam != null) ? cedulaParam.trim() : "";
+        String identificacionExtranjeraParam = req.getParameter("identificacionExtranjera");
+        String identificacionExtranjera = (identificacionExtranjeraParam != null) ? identificacionExtranjeraParam.trim() : "";
+        
+        // Validar que al menos uno tenga valor
+        if (cedula.isEmpty() && identificacionExtranjera.isEmpty()) {
+            req.setAttribute("error", "Debe ingresar cédula o identificación extranjera");
+            req.getRequestDispatcher("/vistas/admin/registrar-empleado.jsp").forward(req, resp);
+            return;
+        }
+        
         EmpleadoDAO eDao = new EmpleadoDAO();
         UsuarioDAO  uDao = new UsuarioDAO();
 
@@ -566,7 +589,7 @@ public class AdminServlet extends HttpServlet {
         e.setNombres(req.getParameter("nombres").trim());
         e.setApellidos(req.getParameter("apellidos").trim());
         e.setCedula(cedula);
-        e.setIdentificacionExtranjera(req.getParameter("identificacionExtranjera"));
+        e.setIdentificacionExtranjera(identificacionExtranjera);
         e.setEsExtranjero("on".equals(req.getParameter("esExtranjero")));
         e.setCargo(req.getParameter("cargo").trim());
         e.setTelefono(req.getParameter("telefono").trim());
@@ -725,6 +748,16 @@ public class AdminServlet extends HttpServlet {
         }
         
         return errores;
+    }
+
+    // ---------- LIMPIAR MENSAJE (AJAX desde JSP) ----------
+
+    private void limpiarMensaje(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        HttpSession session = req.getSession();
+        session.removeAttribute("mensaje");
+        session.removeAttribute("tipoMensaje");
+        resp.setStatus(HttpServletResponse.SC_OK);
     }
 
     // ---------- RESET PASSWORD ----------

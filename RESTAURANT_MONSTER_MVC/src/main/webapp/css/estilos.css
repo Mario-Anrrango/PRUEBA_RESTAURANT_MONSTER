@@ -465,11 +465,29 @@ textarea.form-control { border-radius: 12px; resize: vertical; min-height: 90px;
 .barra-pedido .total-barra { font-weight: 700; font-size: 1.2em; color: var(--dorado); }
 
 /* ===== MODAL RESET PASSWORD (siempre oculto hasta que se abre) ===== */
-#modalResetPassword {
-    display: none !important;
+.modal {
+    display: none;
 }
-#modalResetPassword.visible {
-    display: flex !important;
+
+/* ===== BADGES CÉDULA / IDENTIFICACIÓN EXTRANJERA ===== */
+.badge-extranjero, .badge-ecuatoriano {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.badge-extranjero {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+}
+
+.badge-ecuatoriano {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #17a2b8;
 }
 
 /* ===== BÚSQUEDA ===== */
