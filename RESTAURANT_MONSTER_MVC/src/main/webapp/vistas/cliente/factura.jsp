@@ -127,9 +127,14 @@
         </form>
         <% } %>
         <button onclick="window.print()" class="btn btn-secundario">🖨️ Imprimir</button>
-        <% if (usuario != null && "EMPLEADO".equals(usuario.getPerfil())) { %>
-            <a href="${pageContext.request.contextPath}/empleado?accion=buscarCliente" class="btn btn-secundario">← Volver al Cliente</a>
-        <% } else { %>
+        <% if (usuario != null && "EMPLEADO".equals(usuario.getPerfil())) {
+            String idCliente = (String) session.getAttribute("clienteFacturaId");
+            if (idCliente != null && !idCliente.isEmpty()) { %>
+                <a href="${pageContext.request.contextPath}/empleado?accion=buscarPorId&id=<%= idCliente %>" class="btn btn-secundario">← Volver al Cliente</a>
+            <% } else { %>
+                <a href="${pageContext.request.contextPath}/empleado?accion=buscarCliente" class="btn btn-secundario">← Volver al Cliente</a>
+            <% }
+        } else { %>
             <a href="${pageContext.request.contextPath}/menu" class="btn btn-secundario">← Volver al Menú</a>
         <% } %>
     </div>
@@ -138,5 +143,23 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>var contextPath = '${pageContext.request.contextPath}';</script>
 <script src="${pageContext.request.contextPath}/js/confirmaciones.js"></script>
+
+<!-- FASE 6.25: SweetAlert de éxito después de crear/actualizar pedido -->
+<% if (session.getAttribute("mensaje") != null) {
+    String tipo = (String) session.getAttribute("tipoMensaje");
+    String titulo = "success".equals(tipo) ? "Éxito" : "Aviso";
+%>
+<script>
+    Swal.fire({
+        icon: '<%= tipo %>',
+        title: '<%= titulo %>',
+        text: '<%= session.getAttribute("mensaje") %>',
+        timer: 3000,
+        showConfirmButton: false
+    });
+</script>
+<% session.removeAttribute("mensaje");
+   session.removeAttribute("tipoMensaje");
+} %>
 </body>
 </html>

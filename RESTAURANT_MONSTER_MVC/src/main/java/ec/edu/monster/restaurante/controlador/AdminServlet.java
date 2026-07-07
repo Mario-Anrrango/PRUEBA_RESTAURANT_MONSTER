@@ -9,6 +9,7 @@ import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -49,6 +50,9 @@ public class AdminServlet extends HttpServlet {
             case "listarClientes":    listarClientes(req, resp);              break;
             case "listarEmpleados":   listarEmpleados(req, resp);             break;
             case "limpiarMensaje":    limpiarMensaje(req, resp);               break;
+            case "validarCedulaEmpleado":     validarCedulaEmpleado(req, resp);          break;
+            case "validarIdentificacionEmpleado": validarIdentificacionEmpleado(req, resp); break;
+            case "validarUsuarioEmpleado":    validarUsuarioEmpleado(req, resp);         break;
             default:                  req.getRequestDispatcher("/vistas/admin/dashboard.jsp").forward(req, resp);
         }
     }
@@ -783,6 +787,80 @@ public class AdminServlet extends HttpServlet {
             resp.sendRedirect("admin?accion=listarClientes");
         } else {
             resp.sendRedirect("admin?accion=listarEmpleados");
+        }
+    }
+
+    // ---------- VALIDACIONES AJAX PARA EMPLEADOS ----------
+
+    private void validarCedulaEmpleado(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String cedula = req.getParameter("cedula");
+        String id = req.getParameter("id"); // Para editar (excluir el actual)
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        PrintWriter out = resp.getWriter();
+        try {
+            Empleado existente = new EmpleadoDAO().buscarPorCedula(cedula);
+            if (existente != null) {
+                if (id != null && !id.isEmpty() && existente.getId().equals(id)) {
+                    out.print("{\"valid\": true, \"message\": \"Cédula válida\"}");
+                } else {
+                    out.print("{\"valid\": false, \"message\": \"Esta cédula ya está registrada en empleados\"}");
+                }
+            } else {
+                out.print("{\"valid\": true, \"message\": \"Cédula válida\"}");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            out.print("{\"valid\": false, \"message\": \"Error al validar cédula\"}");
+        }
+    }
+
+    private void validarIdentificacionEmpleado(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String identificacion = req.getParameter("identificacion");
+        String id = req.getParameter("id");
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        PrintWriter out = resp.getWriter();
+        try {
+            Empleado existente = new EmpleadoDAO().buscarPorIdentificacionExtranjera(identificacion);
+            if (existente != null) {
+                if (id != null && !id.isEmpty() && existente.getId().equals(id)) {
+                    out.print("{\"valid\": true, \"message\": \"Identificación válida\"}");
+                } else {
+                    out.print("{\"valid\": false, \"message\": \"Esta identificación ya está registrada en empleados\"}");
+                }
+            } else {
+                out.print("{\"valid\": true, \"message\": \"Identificación válida\"}");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            out.print("{\"valid\": false, \"message\": \"Error al validar identificación\"}");
+        }
+    }
+
+    private void validarUsuarioEmpleado(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String usuario = req.getParameter("usuario");
+        String id = req.getParameter("id");
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        PrintWriter out = resp.getWriter();
+        try {
+            Usuario existente = new UsuarioDAO().buscarPorUsername(usuario);
+            if (existente != null) {
+                if (id != null && !id.isEmpty() && existente.getId().equals(id)) {
+                    out.print("{\"valid\": true, \"message\": \"Usuario válido\"}");
+                } else {
+                    out.print("{\"valid\": false, \"message\": \"Este usuario ya está registrado\"}");
+                }
+            } else {
+                out.print("{\"valid\": true, \"message\": \"Usuario válido\"}");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            out.print("{\"valid\": false, \"message\": \"Error al validar usuario\"}");
         }
     }
 

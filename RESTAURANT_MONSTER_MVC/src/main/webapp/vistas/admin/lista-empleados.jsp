@@ -67,7 +67,8 @@
         <input type="hidden" name="accion" value="listarEmpleados">
         <div class="form-grupo">
             <input type="text" name="busqueda" class="form-control" placeholder="Buscar por cédula o identificación..."
-                   value="<%= request.getParameter("busqueda") != null ? request.getParameter("busqueda") : "" %>">
+                   value="<%= request.getParameter("busqueda") != null ? request.getParameter("busqueda") : "" %>"
+                   oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').trim()">
         </div>
         <button type="submit" class="btn btn-primario" style="height:44px;">Buscar</button>
         <% if (request.getParameter("busqueda") != null && !request.getParameter("busqueda").isEmpty()) { %>
@@ -82,8 +83,8 @@
     <table class="tabla">
         <thead>
             <tr>
-                <th>Nombres</th><th>Apellidos</th><th>Cédula</th>
-                <th>Cargo</th><th>Teléfono</th><th>Correo</th><th>Acciones</th>
+                <th>Nombres</th><th>Apellidos</th><th>Cédula / Identificación</th>
+                <th>Teléfono</th><th>Correo</th><th>Cargo</th><th>Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -91,10 +92,26 @@
             <tr>
                 <td><%= e.getNombres() %></td>
                 <td><%= e.getApellidos() %></td>
-                <td><%= e.getCedula() != null ? e.getCedula() : e.getIdentificacionExtranjera() %></td>
-                <td><span style="background:var(--dorado);color:white;padding:3px 10px;border-radius:12px;font-size:0.85em;"><%= e.getCargo() %></span></td>
+                <td>
+                    <% if (e.isEsExtranjero() || (e.getIdentificacionExtranjera() != null && !e.getIdentificacionExtranjera().isEmpty())) { %>
+                        <span class="badge-extranjero" title="Identificación Extranjera">
+                            &#x1F516; <%= e.getIdentificacionExtranjera() %>
+                        </span>
+                    <% } else { %>
+                        <span class="badge-ecuatoriano" title="Cédula Ecuatoriana">
+                            &#x1F194; <%= e.getCedula() %>
+                        </span>
+                    <% } %>
+                </td>
                 <td><%= e.getTelefono() != null ? e.getTelefono() : "-" %></td>
                 <td><%= e.getCorreo() != null ? e.getCorreo() : "-" %></td>
+                <td>
+                    <% if ("ADMIN".equals(e.getCargo()) || "Admin".equals(e.getCargo())) { %>
+                        <span class="badge-admin" title="Administrador">&#x1F451; ADMINISTRADOR</span>
+                    <% } else { %>
+                        <span class="badge-empleado" title="Mesero">&#x1F37D; MESERO</span>
+                    <% } %>
+                </td>
                 <td>
                     <a href="#" class="btn btn-sm btn-exito" onclick="confirmarEditarEmpleado('<%= e.getId() %>'); return false;">Editar</a>
                     <button onclick="abrirModalReset('<%= e.getIdUsuario() %>', 'EMPLEADO')"

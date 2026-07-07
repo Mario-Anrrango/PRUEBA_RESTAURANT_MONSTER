@@ -117,7 +117,7 @@ public class PedidoServlet extends HttpServlet {
             pDao.actualizarTodo(pedidoModificando);
             session.removeAttribute("pedidoModificando");
             
-            session.setAttribute("mensaje", "Pedido modificado correctamente");
+            session.setAttribute("mensaje", "Pedido actualizado correctamente");
             session.setAttribute("tipoMensaje", "success");
             resp.sendRedirect(req.getContextPath() + "/reservas");
         } else {
@@ -130,6 +130,8 @@ public class PedidoServlet extends HttpServlet {
                 return;
             }
 
+            session.setAttribute("mensaje", "Pedido creado exitosamente");
+            session.setAttribute("tipoMensaje", "success");
             resp.sendRedirect(req.getContextPath() + "/factura?id=" + idPedido);
         }
     }

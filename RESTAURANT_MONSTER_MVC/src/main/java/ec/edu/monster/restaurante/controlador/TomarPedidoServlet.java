@@ -32,12 +32,50 @@ public class TomarPedidoServlet extends HttpServlet {
         Cliente cliente = new ClienteDAO().buscarPorId(idCliente);
         if (cliente == null) { resp.sendRedirect(req.getContextPath() + "/empleado"); return; }
 
+        // FASE 6.19: Manejar modificación de pedido existente
+        String modificarId = req.getParameter("modificar");
+        List<DetallePedido> detallesPedido = null;
+        boolean modoEdicion = false;
+        
+        if (modificarId != null && !modificarId.isEmpty()) {
+            PedidoDAO pedidoDAO = new PedidoDAO();
+            Pedido pedido = pedidoDAO.buscarPorId(modificarId);
+            
+            if (pedido != null && "PENDIENTE".equals(pedido.getEstado())) {
+                detallesPedido = pedido.getDetalles();
+                modoEdicion = true;
+                // Guardar en sesión para que doPost() lo use al actualizar
+                session.setAttribute("pedidoModificando", pedido);
+                req.setAttribute("detallesPedido", detallesPedido);
+                req.setAttribute("modoEdicion", true);
+                req.setAttribute("modificarId", modificarId);
+            }
+        }
+
         List<Categoria> categorias = new CategoriaDAO().listar();
         PlatoDAO pDao = new PlatoDAO();
         Map<String, List<Plato>> platosPorCategoria = new LinkedHashMap<>();
         for (Categoria cat : categorias) {
             platosPorCategoria.put(cat.getId(), pDao.listarPorCategoria(cat.getId()));
         }
+
+        // FASE 6.22: Agregar platos INACTIVOS del pedido original + detectar inactivos
+        boolean hayInactivos = false;
+        if (modoEdicion && detallesPedido != null) {
+            for (DetallePedido det : detallesPedido) {
+                // Verificar estado actual en BD (el detalle.isActivoEnBD() siempre es true por defecto)
+                Plato platoActual = pDao.buscarPorId(det.getIdPlato());
+                if (platoActual != null && !platoActual.isActivo()) {
+                    // Marcar como inactivo en el detalle para que doPost() y JSP lo manejen correctamente
+                    det.setActivoEnBD(false);
+                    hayInactivos = true;
+                    String catId = platoActual.getIdCategoria();
+                    if (catId == null) catId = "";
+                    platosPorCategoria.computeIfAbsent(catId, k -> new ArrayList<>()).add(platoActual);
+                }
+            }
+        }
+        req.setAttribute("hayPlatosInactivos", hayInactivos);
 
         req.setAttribute("clienteSeleccionado", cliente);
         req.setAttribute("categorias", categorias);
@@ -60,30 +98,51 @@ public class TomarPedidoServlet extends HttpServlet {
         String idCliente = req.getParameter("idCliente");
 
         String[] platosSeleccionados = req.getParameterValues("platos");
-        if (platosSeleccionados == null || platosSeleccionados.length == 0) {
+        String[] platosInactivos = req.getParameterValues("platos_inactivos");
+        
+        if ((platosSeleccionados == null || platosSeleccionados.length == 0) &&
+            (platosInactivos == null || platosInactivos.length == 0)) {
             resp.sendRedirect(req.getContextPath() + "/empleado/tomar-pedido?idCliente=" + idCliente + "&error=vacio");
             return;
         }
 
+        // FASE 6.19: Verificar si es modificación de pedido existente
+        Pedido pedidoModificando = (Pedido) session.getAttribute("pedidoModificando");
+        
         PlatoDAO platoDao = new PlatoDAO();
         List<DetallePedido> detalles = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
-        for (String idPlatoStr : platosSeleccionados) {
-            String cantStr = req.getParameter("cantidad_" + idPlatoStr);
-            int cantidad = (cantStr != null && !cantStr.isEmpty()) ? Integer.parseInt(cantStr) : 1;
-            if (cantidad < 1) cantidad = 1;
+        // Procesar platos ACTIVOS seleccionados
+        if (platosSeleccionados != null) {
+            for (String idPlatoStr : platosSeleccionados) {
+                String cantStr = req.getParameter("cantidad_" + idPlatoStr);
+                int cantidad = (cantStr != null && !cantStr.isEmpty()) ? Integer.parseInt(cantStr) : 1;
+                if (cantidad < 1) cantidad = 1;
 
-            Plato plato = platoDao.buscarPorId(idPlatoStr);
-            if (plato != null) {
-                DetallePedido d = new DetallePedido();
-                d.setIdPlato(idPlatoStr);
-                d.setNombrePlato(plato.getNombre());
-                d.setCategoriaPlato(plato.getNombreCategoria());
-                d.setCantidad(cantidad);
-                d.setPrecioUnitario(plato.getPrecio());
-                detalles.add(d);
-                subtotal = subtotal.add(plato.getPrecio().multiply(BigDecimal.valueOf(cantidad)));
+                Plato plato = platoDao.buscarPorId(idPlatoStr);
+                if (plato != null) {
+                    DetallePedido d = new DetallePedido();
+                    d.setIdPlato(idPlatoStr);
+                    d.setNombrePlato(plato.getNombre());
+                    d.setCategoriaPlato(plato.getNombreCategoria());
+                    d.setCantidad(cantidad);
+                    d.setPrecioUnitario(plato.getPrecio());
+                    d.setActivoEnBD(true);
+                    detalles.add(d);
+                    subtotal = subtotal.add(plato.getPrecio().multiply(BigDecimal.valueOf(cantidad)));
+                }
+            }
+        }
+
+        // Mantener platos INACTIVOS del pedido original
+        if (pedidoModificando != null && pedidoModificando.getDetalles() != null) {
+            for (DetallePedido detOriginal : pedidoModificando.getDetalles()) {
+                if (!detOriginal.isActivoEnBD()) {
+                    // Mantener el detalle original completo (incluyendo precio del momento)
+                    detalles.add(detOriginal);
+                    subtotal = subtotal.add(detOriginal.getSubtotalLinea());
+                }
             }
         }
 
@@ -91,20 +150,43 @@ public class TomarPedidoServlet extends HttpServlet {
         BigDecimal servicio = subtotal.multiply(SERVICIO_PCT);
         BigDecimal total    = subtotal.add(iva).add(servicio);
 
-        Pedido pedido = new Pedido();
-        pedido.setIdCliente(idCliente);
-        if (empleado != null) pedido.setIdEmpleado(empleado.getId());
-        pedido.setFecha(LocalDate.now());
-        pedido.setHora(LocalTime.now());
-        pedido.setSubtotal(subtotal);
-        pedido.setIva(iva);
-        pedido.setServicio(servicio);
-        pedido.setTotal(total);
-        pedido.setDetalles(detalles);
-
         PedidoDAO pDao = new PedidoDAO();
-        String idPedido = pDao.insertar(pedido);
+        
+        if (pedidoModificando != null) {
+            // ACTUALIZAR pedido existente
+            pedidoModificando.setDetalles(detalles);
+            pedidoModificando.setSubtotal(subtotal);
+            pedidoModificando.setIva(iva);
+            pedidoModificando.setServicio(servicio);
+            pedidoModificando.setTotal(total);
+            
+            pDao.actualizarTodo(pedidoModificando);
+            session.removeAttribute("pedidoModificando");
+            
+            session.setAttribute("mensaje", "Pedido actualizado correctamente");
+            session.setAttribute("tipoMensaje", "success");
+            // FASE 6.21: Guardar idCliente en sesión para que factura tenga link de vuelta
+            session.setAttribute("clienteFacturaId", idCliente);
+            resp.sendRedirect(req.getContextPath() + "/factura?id=" + pedidoModificando.getId());
+        } else {
+            // CREAR nuevo pedido
+            Pedido pedido = new Pedido();
+            pedido.setIdCliente(idCliente);
+            if (empleado != null) pedido.setIdEmpleado(empleado.getId());
+            pedido.setFecha(LocalDate.now());
+            pedido.setHora(LocalTime.now());
+            pedido.setSubtotal(subtotal);
+            pedido.setIva(iva);
+            pedido.setServicio(servicio);
+            pedido.setTotal(total);
+            pedido.setDetalles(detalles);
 
-        resp.sendRedirect(req.getContextPath() + "/factura?id=" + idPedido);
+            String idPedido = pDao.insertar(pedido);
+            // FASE 6.21: Guardar idCliente en sesión para que factura tenga link de vuelta
+            session.setAttribute("clienteFacturaId", idCliente);
+            session.setAttribute("mensaje", "Pedido creado exitosamente");
+            session.setAttribute("tipoMensaje", "success");
+            resp.sendRedirect(req.getContextPath() + "/factura?id=" + idPedido);
+        }
     }
 }

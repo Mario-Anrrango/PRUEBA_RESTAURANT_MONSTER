@@ -324,6 +324,43 @@ textarea.error:focus {
 }
 
 /* ==========================================
+   FASE 6.20 — BOTÓN CANCELAR PEDIDO
+   ========================================== */
+
+.btn-cancelar {
+    display: inline-block;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: 'Playfair Display', serif;
+    font-size: 0.82em;
+    text-decoration: none;
+    transition: all 0.25s;
+    letter-spacing: 0.5px;
+    background: #dc3545;
+    color: white;
+}
+
+.btn-cancelar:hover {
+    background: #c82333;
+}
+
+/* ==========================================
+   FASE 6.20 — RESALTADO VERDE EN EDICIÓN DE PEDIDOS
+   ========================================== */
+
+.plato-card.editando {
+    border: 2px solid #28a745;
+    background-color: #d4edda;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+}
+
+.plato-card.editando input[type="checkbox"]:checked {
+    accent-color: #28a745;
+}
+
+/* ==========================================
    FASE 6.9 — FORMULARIO PLATO (ADMIN)
    ========================================== */
 

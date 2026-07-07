@@ -9,11 +9,9 @@
     List<Categoria> categorias = (List<Categoria>) request.getAttribute("categorias");
     Map<String, List<Plato>> platosPorCategoria =
         (Map<String, List<Plato>>) request.getAttribute("platosPorCategoria");
-    // PROBLEMA 2 + FASE 6.6: Cargar detalles existentes para modificación
     List<DetallePedido> detallesModificar = (List<DetallePedido>) request.getAttribute("detallesModificar");
     String modificandoId = (String) request.getAttribute("modificandoId");
     boolean modoModificacion = request.getAttribute("modoModificacion") != null;
-    // Mapa rápido: id_plato -> DetallePedido
     Map<String, DetallePedido> detalleMap = new java.util.HashMap<>();
     if (detallesModificar != null) {
         for (DetallePedido d : detallesModificar) {
@@ -30,6 +28,30 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/estilos.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/validaciones.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .plato-card.seleccionado { border-color: #27ae60; background-color: #f0fff4; }
+        /* FASE 6.27: Paginación y ordenamiento */
+        .categoria-section { margin-bottom: 10px; }
+        .controles-categoria { display: flex; align-items: center; gap: 10px; margin: 8px 0 15px; }
+        .controles-categoria label { font-size: 0.85em; color: #666; }
+        .controles-categoria select {
+            padding: 6px 10px; border: 2px solid #d4a577; border-radius: 8px;
+            background-color: white; cursor: pointer; font-size: 0.85em;
+        }
+        .paginacion-categoria {
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+            margin-top: 15px; padding: 12px; background-color: #f8f9fa;
+            border-radius: 8px; border: 1px solid #eee;
+        }
+        .btn-pagina {
+            padding: 6px 14px; background-color: #8b4513; color: white;
+            border: none; border-radius: 6px; cursor: pointer;
+            transition: background-color 0.3s; font-size: 0.85em;
+        }
+        .btn-pagina:hover:not(:disabled) { background-color: #a0522d; }
+        .btn-pagina:disabled { background-color: #ccc; cursor: not-allowed; }
+        .pagina-info { font-weight: bold; color: #8b4513; font-size: 0.9em; }
+    </style>
 </head>
 <body>
 
@@ -65,7 +87,7 @@
     </div>
 <% } %>
 
-<%-- FASE 6.6: SweetAlert si hay platos inactivos --%>
+<%-- SweetAlert si hay platos inactivos --%>
 <%
 Boolean hayInactivos = (Boolean) session.getAttribute("hayPlatosInactivos");
 if (hayInactivos != null && hayInactivos) {
@@ -138,28 +160,39 @@ document.addEventListener('DOMContentLoaded', function() {
         Selecciona los platos que deseas y ajusta la cantidad con los botones + y −
     </p>
 
-    <form action="${pageContext.request.contextPath}/pedido" method="post" id="formPedido">
+    <form action="${pageContext.request.contextPath}/pedido" method="post" id="formPedido" onsubmit="return confirmarPedido(event)">
 
         <% if (categorias != null) {
             for (Categoria cat : categorias) {
                 List<Plato> platos = platosPorCategoria.get(cat.getId());
                 if (platos == null || platos.isEmpty()) continue;
+                String catId = cat.getId();
         %>
-        <div class="titulo-categoria"><%= cat.getNombre() %></div>
-        <div class="menu-grid" style="background:white;padding:20px;border-radius:0 0 12px 12px;
-             box-shadow:0 4px 12px rgba(0,0,0,0.08);margin-bottom:10px;">
+        <div class="categoria-section" data-categoria="<%= catId %>">
+            <div class="titulo-categoria"><%= cat.getNombre() %></div>
+            <div class="controles-categoria">
+                <label>Ordenar:</label>
+                <select onchange="ordenarCategoria('<%= catId %>', this.value)">
+                    <option value="default">Predeterminado</option>
+                    <option value="precio-asc">Precio: Menor a Mayor</option>
+                    <option value="precio-desc">Precio: Mayor a Menor</option>
+                    <option value="nombre-asc">Nombre: A-Z</option>
+                    <option value="nombre-desc">Nombre: Z-A</option>
+                </select>
+            </div>
+            <div class="menu-grid platos-grid" id="grid-<%= catId %>"
+                 style="background:white;padding:20px;border-radius:0 0 12px 12px;
+                 box-shadow:0 4px 12px rgba(0,0,0,0.08);margin-bottom:10px;">
             <% for (Plato p : platos) { 
                 DetallePedido det = detalleMap.get(p.getId());
                 boolean seleccionado = det != null;
                 int cantidadInicial = seleccionado ? det.getCantidad() : 1;
-                // FASE 6.6: Verificar si el plato está activo en BD
                 boolean activoEnBD = true;
                 if (det != null) {
                     activoEnBD = det.isActivoEnBD();
                 } else {
                     activoEnBD = p.isActivo();
                 }
-                // Precio mostrado: si el plato tiene precio null, usar el del detalle
                 java.math.BigDecimal precioMostrar = p.getPrecio();
                 if (precioMostrar == null && det != null && det.getPrecioUnitario() != null) {
                     precioMostrar = det.getPrecioUnitario();
@@ -167,8 +200,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (precioMostrar == null) precioMostrar = java.math.BigDecimal.ZERO;
                 String claseCard = activoEnBD ? "plato-card" : "plato-card plato-inactivo";
                 String claseImg = activoEnBD ? "" : "img-inactiva";
+                String nombreAttr = p.getNombre().replace("\"", "&quot;");
             %>
-            <div class="<%= claseCard %>" id="card_<%= p.getId() %>">
+            <div class="<%= claseCard %><%= modoModificacion && seleccionado ? " editando" : "" %>"
+                 id="card_<%= p.getId() %>"
+                 data-precio="<%= precioMostrar %>"
+                 data-nombre="<%= nombreAttr %>">
                 <img src="${pageContext.request.contextPath}/images/<%= p.getFoto() %>"
                      alt="<%= p.getNombre() %>"
                      class="<%= claseImg %>"
@@ -180,13 +217,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="plato-footer" id="footer_<%= p.getId() %>">
                 <% if (activoEnBD) { %>
-                    <!-- PLATO ACTIVO: checkbox habilitado -->
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                         <input type="checkbox" class="checkbox-plato" name="platos"
                                value="<%= p.getId() %>" id="chk_<%= p.getId() %>"
                                <%= seleccionado ? "checked" : "" %>
                                data-precio="<%= precioMostrar %>"
-                               onchange="toggleCantidad('<%= p.getId() %>', this.checked, <%= precioMostrar %>)">
+                               onchange="toggleCantidad('<%= p.getId() %>', this.checked, <%= precioMostrar %>); actualizarEstadoBoton()">
                         <span style="font-size:0.9em;color:#555;">Seleccionar</span>
                     </label>
                     <div class="contador-cantidad" id="contador_<%= p.getId() %>"
@@ -197,8 +233,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="hidden" name="cantidad_<%= p.getId() %>" id="qty_<%= p.getId() %>" value="<%= cantidadInicial %>">
                     </div>
                 <% } else { %>
-                    <!-- FASE 6.6: PLATO INACTIVO - checkbox deshabilitado, se conserva en pedido -->
-                    <!-- NOTA: SIN class="checkbox-plato" para que DOMContentLoaded init no lo procese con precio=0 -->
                     <input type="checkbox"
                            value="<%= p.getId() %>" id="chk_<%= p.getId() %>"
                            disabled <%= seleccionado ? "checked" : "" %>
@@ -217,6 +251,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             <% } %>
+            </div>
+            <% if (platos.size() > 8) { %>
+            <div class="paginacion-categoria" id="pag-<%= catId %>">
+                <button class="btn-pagina" onclick="cambiarPagina('<%= catId %>', 1)">≪ Inicio</button>
+                <button class="btn-pagina" onclick="cambiarPagina('<%= catId %>', paginaActual['<%= catId %>'] - 1)">‹ Anterior</button>
+                <span class="pagina-info">Pág <span id="pagina-actual-<%= catId %>">1</span> de <span id="total-paginas-<%= catId %>"><%= (platos.size() + 7) / 8 %></span></span>
+                <button class="btn-pagina" onclick="cambiarPagina('<%= catId %>', paginaActual['<%= catId %>'] + 1)">Siguiente ›</button>
+                <button class="btn-pagina" onclick="cambiarPagina('<%= catId %>', <%= (platos.size() + 7) / 8 %>)">Fin ≫</button>
+            </div>
+            <% } %>
         </div>
         <% } } %>
 
@@ -225,9 +269,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <div style="display:flex;align-items:center;gap:20px;">
                 <span class="total-barra" id="totalBarra">$0.00</span>
                 <a href="${pageContext.request.contextPath}/reservas" class="btn btn-secundario btn-sm">📋 Mis Reservas</a>
-                <button type="submit" id="btnEnviar" class="btn btn-exito" disabled
+                <button type="submit" id="btnEnviar" class="btn btn-exito"
                         style="background:#27ae60;color:white;border-radius:25px;padding:10px 24px;">
-                    Enviar Pedido
+                    <%= modoModificacion ? "Actualizar Pedido" : "Enviar Pedido" %>
                 </button>
             </div>
         </div>
@@ -237,8 +281,154 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="${pageContext.request.contextPath}/js/validaciones.js"></script>
 <script src="${pageContext.request.contextPath}/js/menu.js"></script>
 <script>
-// Inicializar seleccionados con items pre-marcados (modificación)
+// FASE 6.25: SweetAlert de confirmación antes de enviar pedido
+function confirmarPedido(event) {
+    event.preventDefault();
+    
+    var modoEdit = <%= modoModificacion %>;
+    var activosSeleccionados = document.querySelectorAll('input[type="checkbox"]:checked:not([disabled])').length;
+    var inactivosSeleccionados = document.querySelectorAll('.plato-inactivo input[type="checkbox"]:checked').length;
+    var totalPlatos = activosSeleccionados + inactivosSeleccionados;
+    
+    if (totalPlatos === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sin platos',
+            text: 'Debe seleccionar al menos un plato',
+            confirmButtonText: 'Entendido'
+        });
+        return false;
+    }
+    
+    var titulo = modoEdit ? '¿Actualizar pedido?' : '¿Confirmar pedido?';
+    var texto = modoEdit ? 'Se actualizarán los platos y cantidades del pedido' : 'Esta acción no se puede deshacer';
+    
+    Swal.fire({
+        title: titulo,
+        text: texto,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#27ae60',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: modoEdit ? 'Sí, actualizar' : 'Sí, confirmar',
+        cancelButtonText: 'Cancelar',
+        allowOutsideClick: false
+    }).then(function(result) {
+        if (result.isConfirmed) {
+            var btn = document.getElementById('btnEnviar');
+            if (btn) { btn.disabled = true; btn.textContent = modoEdit ? 'Actualizando...' : 'Confirmando...'; }
+            document.getElementById('formPedido').submit();
+        }
+    });
+    
+    return false;
+}
+
+// FASE 6.27: Deshabilitar/habilitar botón según platos seleccionados
+function actualizarEstadoBoton() {
+    var activos = document.querySelectorAll('input[type="checkbox"]:checked:not([disabled])').length;
+    var inactivos = document.querySelectorAll('.plato-inactivo input[type="checkbox"]:checked').length;
+    var total = activos + inactivos;
+    var boton = document.getElementById('btnEnviar');
+    if (total === 0) {
+        boton.disabled = true;
+        boton.style.opacity = '0.5';
+        boton.style.cursor = 'not-allowed';
+        boton.title = 'Seleccione al menos un plato';
+    } else {
+        boton.disabled = false;
+        boton.style.opacity = '1';
+        boton.style.cursor = 'pointer';
+        boton.title = '';
+    }
+}
+
+// FASE 6.27: Paginación del menú
+var paginaActual = {};
+var totalPaginas = {};
+var platosPorCategoria = {};
+
+function mostrarPagina(categoria, pagina) {
+    var platos = platosPorCategoria[categoria];
+    if (!platos) return;
+    var inicio = (pagina - 1) * 8;
+    var fin = inicio + 8;
+    for (var i = 0; i < platos.length; i++) {
+        platos[i].style.display = (i >= inicio && i < fin) ? '' : 'none';
+    }
+    paginaActual[categoria] = pagina;
+    var pagLabel = document.getElementById('pagina-actual-' + categoria);
+    if (pagLabel) pagLabel.textContent = pagina;
+    actualizarBotonesPaginacion(categoria);
+}
+
+function cambiarPagina(categoria, pagina) {
+    if (pagina < 1) pagina = 1;
+    if (pagina > totalPaginas[categoria]) pagina = totalPaginas[categoria];
+    mostrarPagina(categoria, pagina);
+}
+
+function actualizarBotonesPaginacion(categoria) {
+    var pagDiv = document.getElementById('pag-' + categoria);
+    if (!pagDiv) return;
+    var botones = pagDiv.querySelectorAll('.btn-pagina');
+    var actual = paginaActual[categoria] || 1;
+    var total = totalPaginas[categoria] || 1;
+    if (botones.length >= 4) {
+        botones[0].disabled = (actual <= 1);
+        botones[1].disabled = (actual <= 1);
+        botones[2].disabled = (actual >= total);
+        botones[3].disabled = (actual >= total);
+    }
+}
+
+function ordenarCategoria(categoria, criterio) {
+    var grid = document.getElementById('grid-' + categoria);
+    if (!grid) return;
+    var platos = Array.from(grid.querySelectorAll('.plato-card, .plato-inactivo'));
+    if (criterio === 'default') {
+        // Restaurar orden original
+        platos.sort(function(a, b) { return a._index - b._index; });
+    } else if (criterio === 'precio-asc') {
+        platos.sort(function(a, b) {
+            return parseFloat(a.getAttribute('data-precio')) - parseFloat(b.getAttribute('data-precio'));
+        });
+    } else if (criterio === 'precio-desc') {
+        platos.sort(function(a, b) {
+            return parseFloat(b.getAttribute('data-precio')) - parseFloat(a.getAttribute('data-precio'));
+        });
+    } else if (criterio === 'nombre-asc') {
+        platos.sort(function(a, b) {
+            return (a.getAttribute('data-nombre') || '').localeCompare(b.getAttribute('data-nombre') || '');
+        });
+    } else if (criterio === 'nombre-desc') {
+        platos.sort(function(a, b) {
+            return (b.getAttribute('data-nombre') || '').localeCompare(a.getAttribute('data-nombre') || '');
+        });
+    }
+    platos.forEach(function(p) { grid.appendChild(p); });
+    paginaActual[categoria] = 1;
+    mostrarPagina(categoria, 1);
+}
+
+// Inicializar
 document.addEventListener('DOMContentLoaded', function() {
+    // Guardar índice original para restaurar orden
+    document.querySelectorAll('.categoria-section').forEach(function(section) {
+        var categoria = section.getAttribute('data-categoria');
+        var grid = document.getElementById('grid-' + categoria);
+        if (!grid) return;
+        var cards = Array.from(grid.querySelectorAll('.plato-card, .plato-inactivo'));
+        cards.forEach(function(card, idx) { card._index = idx; });
+        platosPorCategoria[categoria] = cards;
+        totalPaginas[categoria] = Math.ceil(cards.length / 8);
+        paginaActual[categoria] = 1;
+        if (cards.length > 8) {
+            mostrarPagina(categoria, 1);
+        }
+    });
+
+    // Inicializar seleccionados con items pre-marcados (modificación)
     var checkboxes = document.querySelectorAll('.checkbox-plato:checked');
     checkboxes.forEach(function(chk) {
         var idPlato = chk.value;
@@ -251,20 +441,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (card) card.classList.add('seleccionado');
         seleccionados[idPlato] = { qty: qty, precio: precio };
     });
-    // FASE 6.6: Agregar platos INACTIVOS (NO tienen class="checkbox-plato")
+    // Agregar platos INACTIVOS
     document.querySelectorAll('.plato-inactivo').forEach(function(card) {
         var chk = card.querySelector('input[type="checkbox"]');
         if (chk && chk.checked) {
             var idPlato = chk.value;
             var precio = parseFloat(chk.getAttribute('data-precio')) || 0;
             var qty = parseInt(chk.getAttribute('data-cantidad')) || 1;
-            // Siempre agregar (inactivos nunca están en seleccionados del primer loop)
             seleccionados[idPlato] = { qty: qty, precio: precio };
         }
     });
     actualizarBarra();
     
-    // Si hay platos inactivos, actualizar el texto del footer
+    // Inactivos count
     var inactivosCount = document.querySelectorAll('.plato-inactivo input[type="checkbox"]:checked').length;
     if (inactivosCount > 0) {
         var resumenEl = document.getElementById('resumenPedido');
@@ -273,17 +462,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Debug log
-    console.log('=== DEBUG Total ===');
-    console.log('Total calculado por actualizarBarra:', document.getElementById('totalBarra').textContent);
-    console.log('Platos en seleccionados:', Object.keys(seleccionados).length);
-    var totalCalc = 0;
-    Object.keys(seleccionados).forEach(function(id) {
-        totalCalc += seleccionados[id].qty * seleccionados[id].precio;
-        console.log('  - Plato ' + id + ': ' + seleccionados[id].qty + ' x ' + seleccionados[id].precio.toFixed(2));
-    });
-    console.log('Total verificado:', totalCalc.toFixed(2));
+    // FASE 6.27: Estado inicial del botón
+    actualizarEstadoBoton();
 });
 </script>
 </body>
-</html>
+</html>
