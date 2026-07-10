@@ -83,11 +83,13 @@
         <thead>
             <tr>
                 <th>Nombres</th><th>Apellidos</th><th>Cédula / Identificación</th>
-                <th>Teléfono</th><th>Correo</th><th>Acciones</th>
+                <th>Teléfono</th><th>Correo</th><th>Usuario</th><th>Acciones</th>
             </tr>
         </thead>
         <tbody>
-        <% if (clientes != null) { for (Cliente c : clientes) { %>
+        <%
+            Map<String, String> nombresUsuario = (Map<String, String>) request.getAttribute("nombresUsuario");
+            if (clientes != null) { for (Cliente c : clientes) { %>
             <tr>
                 <td><%= c.getNombres() %></td>
                 <td><%= c.getApellidos() %></td>
@@ -105,9 +107,21 @@
                 <td><%= c.getTelefono() != null ? c.getTelefono() : "-" %></td>
                 <td><%= c.getCorreo() != null ? c.getCorreo() : "-" %></td>
                 <td>
+                    <%
+                        String usernameCli = nombresUsuario != null ? nombresUsuario.get(c.getId()) : null;
+                        if (usernameCli != null) {
+                    %>
+                        <span class="badge-usuario">@<%= usernameCli %></span>
+                    <% } else { %>
+                        <span class="text-muted">Sin usuario</span>
+                    <% } %>
+                </td>
+                <td>
                     <a href="#" class="btn btn-sm btn-exito" onclick="confirmarEditarCliente('<%= c.getId() %>'); return false;">Editar</a>
+                    <% if (c.getIdUsuario() != null) { %>
                     <button onclick="abrirModalReset('<%= c.getIdUsuario() %>', 'CLIENTE')"
                             class="btn btn-sm btn-secundario">Resetear Contraseña</button>
+                    <% } %>
                     <%-- Mostrar solo un botón según estado --%>
                     <%
                         Map<String, Boolean> estadosActivosMap = (Map<String, Boolean>) request.getAttribute("estadosActivos");
@@ -124,7 +138,7 @@
                 </td>
             </tr>
         <% } } else { %>
-            <tr><td colspan="6" style="text-align:center;padding:30px;color:#888;">No hay clientes registrados.</td></tr>
+            <tr><td colspan="7" style="text-align:center;padding:30px;color:#888;">No hay clientes registrados.</td></tr>
         <% } %>
         </tbody>
     </table>
@@ -141,7 +155,7 @@
         if (paginaActual == null) paginaActual = 1;
         if (registrosPorPagina == null) registrosPorPagina = 5;
     %>
-    <% if (totalPaginas > 0) { %>
+    <!-- Selector "Mostrar" SIEMPRE visible -->
     <div class="paginacion" style="display:flex;justify-content:space-between;align-items:center;margin-top:15px;flex-wrap:wrap;gap:10px;">
         <div>
             <label style="color:#888;font-size:0.9em;">Mostrar:
@@ -154,6 +168,8 @@
             </label>
             <span style="color:#888;font-size:0.9em;margin-left:10px;">Total: <%= totalRegistros %> registros</span>
         </div>
+        <!-- PaginaciÃ³n visible si hay al menos 1 registro -->
+        <% if (totalRegistros != null && totalRegistros > 0) { %>
         <div style="display:flex;gap:5px;align-items:center;">
             <a href="?accion=listarClientes&pagina=1&registros=<%= registrosPorPagina %><%= paramBusqueda %>"
                class="btn btn-sm <%= paginaActual == 1 ? "btn-secundario disabled" : "btn-secundario" %>"
@@ -161,7 +177,7 @@
             <a href="?accion=listarClientes&pagina=<%= paginaActual - 1 %>&registros=<%= registrosPorPagina %><%= paramBusqueda %>"
                class="btn btn-sm <%= paginaActual <= 1 ? "btn-secundario disabled" : "btn-secundario" %>"
                <%= paginaActual <= 1 ? "style='pointer-events:none;opacity:0.5;'" : "" %>>«</a>
-            <span style="padding:5px 10px;color:#666;">Pág <%= paginaActual %> de <%= totalPaginas %></span>
+            <span style="padding:5px 10px;color:#666;">PÃ¡g <%= paginaActual %> de <%= totalPaginas %></span>
             <a href="?accion=listarClientes&pagina=<%= paginaActual + 1 %>&registros=<%= registrosPorPagina %><%= paramBusqueda %>"
                class="btn btn-sm <%= paginaActual >= totalPaginas ? "btn-secundario disabled" : "btn-secundario" %>"
                <%= paginaActual >= totalPaginas ? "style='pointer-events:none;opacity:0.5;'" : "" %>>»</a>
@@ -169,8 +185,8 @@
                class="btn btn-sm <%= paginaActual >= totalPaginas ? "btn-secundario disabled" : "btn-secundario" %>"
                <%= paginaActual >= totalPaginas ? "style='pointer-events:none;opacity:0.5;'" : "" %>>»»</a>
         </div>
+        <% } %>
     </div>
-    <% } %>
 </div>
 
 <jsp:include page="/vistas/admin/modal-reset-password.jsp" />

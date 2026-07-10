@@ -126,12 +126,12 @@
             <% } %>
             <div class="form-grupo" style="flex:0 0 auto;">
                 <label style="font-size:0.8em;">Desde</label>
-                <input type="date" name="fechaDesde" class="form-control" style="width:150px;"
+                <input type="date" name="fechaDesde" id="fechaDesde" class="form-control" style="width:150px;"
                        value="<%= fechaDesde != null ? fechaDesde : "" %>">
             </div>
             <div class="form-grupo" style="flex:0 0 auto;">
                 <label style="font-size:0.8em;">Hasta</label>
-                <input type="date" name="fechaHasta" class="form-control" style="width:150px;"
+                <input type="date" name="fechaHasta" id="fechaHasta" class="form-control" style="width:150px;"
                        value="<%= fechaHasta != null ? fechaHasta : "" %>">
             </div>
             <div class="form-grupo" style="flex:0 0 auto;">
@@ -271,6 +271,41 @@
     function verFactura(pedidoId) {
         window.location.href = contextPath + '/factura?id=' + pedidoId;
     }
+
+    // FASE 6.29: Validación fecha Hasta >= Desde (replicado de cliente)
+    document.addEventListener('DOMContentLoaded', function() {
+        var inputDesde = document.getElementById('fechaDesde');
+        var inputHasta = document.getElementById('fechaHasta');
+
+        if (inputDesde && inputHasta) {
+            inputDesde.addEventListener('change', function() {
+                if (inputHasta.value && inputHasta.value < this.value) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Fecha inválida',
+                        text: 'La fecha "hasta" no puede ser anterior a "desde"',
+                        confirmButtonText: 'Entendido'
+                    });
+                    inputHasta.value = this.value;
+                }
+                if (this.value) {
+                    inputHasta.min = this.value;
+                }
+            });
+
+            inputHasta.addEventListener('change', function() {
+                if (inputDesde.value && this.value < inputDesde.value) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Fecha inválida',
+                        text: 'La fecha "hasta" no puede ser anterior a "desde"',
+                        confirmButtonText: 'Entendido'
+                    });
+                    this.value = inputDesde.value;
+                }
+            });
+        }
+    });
 </script>
 <script src="${pageContext.request.contextPath}/js/validaciones.js"></script>
 </body>

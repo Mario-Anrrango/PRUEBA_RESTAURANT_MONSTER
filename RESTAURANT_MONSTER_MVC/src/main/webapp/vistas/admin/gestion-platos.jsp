@@ -168,7 +168,7 @@
     </table>
 
     <!-- PAGINACIÓN -->
-    <% if (totalPaginas > 1) { %>
+    <!-- Selector "Mostrar" SIEMPRE visible -->
     <div class="paginacion" style="display:flex;justify-content:space-between;align-items:center;padding:20px;background-color:#fff;border-radius:8px;margin-top:20px;">
         <div style="display:flex;gap:20px;align-items:center;">
             <label style="color:#888;font-size:0.9em;">
@@ -182,6 +182,8 @@
             </label>
             <span style="color:#888;font-size:0.9em;">Total: <%= totalRegistros %> platos</span>
         </div>
+        <!-- PaginaciÃ³n visible si hay al menos 1 registro -->
+        <% if (totalRegistros > 0) { %>
         <div style="display:flex;gap:5px;align-items:center;">
             <a href="?accion=listarPlatos&pagina=1&registros=<%= registrosPorPagina %>&categoria=<%= categoriaFiltro %>"
                class="btn btn-sm <%= pagina == 1 ? "btn-secundario" : "btn-primario" %>"
@@ -197,8 +199,8 @@
                class="btn btn-sm <%= pagina == totalPaginas ? "btn-secundario" : "btn-primario" %>"
                style="<%= pagina == totalPaginas ? "opacity:0.5;pointer-events:none;" : "" %>">Fin ≫</a>
         </div>
+        <% } %>
     </div>
-    <% } %>
 </div>
 
 <script>

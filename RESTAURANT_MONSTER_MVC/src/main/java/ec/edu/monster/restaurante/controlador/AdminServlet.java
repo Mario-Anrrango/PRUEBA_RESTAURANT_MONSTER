@@ -391,12 +391,16 @@ public class AdminServlet extends HttpServlet {
             totalRegistros = cDao.contarTotal();
         }
         
-        // Verificar estado activo de cada cliente (PROBLEMA 3)
+        // Verificar estado activo y obtener username de cada cliente
         Map<String, Boolean> estadosActivos = new java.util.HashMap<>();
+        Map<String, String> nombresUsuario = new java.util.HashMap<>();
         for (Cliente c : clientes) {
             if (c.getIdUsuario() != null) {
                 Usuario usr = uDao.buscarPorId(c.getIdUsuario());
                 estadosActivos.put(c.getId(), usr != null ? usr.isActivo() : true);
+                if (usr != null) {
+                    nombresUsuario.put(c.getId(), usr.getUsername());
+                }
             } else {
                 estadosActivos.put(c.getId(), true);
             }
@@ -407,6 +411,7 @@ public class AdminServlet extends HttpServlet {
         
         req.setAttribute("clientes", clientes);
         req.setAttribute("estadosActivos", estadosActivos);
+        req.setAttribute("nombresUsuario", nombresUsuario);
         req.setAttribute("pagina", pagina);
         req.setAttribute("totalPaginas", totalPaginas);
         req.setAttribute("totalRegistros", totalRegistros);
@@ -532,12 +537,16 @@ public class AdminServlet extends HttpServlet {
             totalRegistros = eDao.contarTotal();
         }
         
-        // Verificar estado activo de cada empleado (PROBLEMA 3)
+        // Verificar estado activo y obtener username de cada empleado
         Map<String, Boolean> estadosActivos = new java.util.HashMap<>();
+        Map<String, String> nombresUsuario = new java.util.HashMap<>();
         for (Empleado e : empleados) {
             if (e.getIdUsuario() != null) {
                 Usuario usr = uDao.buscarPorId(e.getIdUsuario());
                 estadosActivos.put(e.getId(), usr != null ? usr.isActivo() : true);
+                if (usr != null) {
+                    nombresUsuario.put(e.getId(), usr.getUsername());
+                }
             } else {
                 estadosActivos.put(e.getId(), true);
             }
@@ -548,6 +557,7 @@ public class AdminServlet extends HttpServlet {
         
         req.setAttribute("empleados", empleados);
         req.setAttribute("estadosActivos", estadosActivos);
+        req.setAttribute("nombresUsuario", nombresUsuario);
         req.setAttribute("pagina", pagina);
         req.setAttribute("totalPaginas", totalPaginas);
         req.setAttribute("totalRegistros", totalRegistros);
@@ -587,7 +597,11 @@ public class AdminServlet extends HttpServlet {
         // Encriptar contraseña con BCrypt
         String password = req.getParameter("password").trim();
         String hashedPassword = PasswordUtil.hash(password);
-        String idUsr = uDao.insertar(username, hashedPassword, "EMPLEADO");
+        
+        // Sincronizar perfil del usuario según el cargo del empleado
+        String cargo = req.getParameter("cargo").trim();
+        String perfil = "Admin".equalsIgnoreCase(cargo) ? "ADMIN" : "EMPLEADO";
+        String idUsr = uDao.insertar(username, hashedPassword, perfil);
 
         Empleado e = new Empleado();
         e.setNombres(req.getParameter("nombres").trim());
@@ -595,7 +609,7 @@ public class AdminServlet extends HttpServlet {
         e.setCedula(cedula);
         e.setIdentificacionExtranjera(identificacionExtranjera);
         e.setEsExtranjero("on".equals(req.getParameter("esExtranjero")));
-        e.setCargo(req.getParameter("cargo").trim());
+        e.setCargo(cargo);
         e.setTelefono(req.getParameter("telefono").trim());
         e.setCorreo(req.getParameter("correo").trim());
         e.setFechaIngreso(LocalDate.now()); // Fecha automática
@@ -616,7 +630,6 @@ public class AdminServlet extends HttpServlet {
         Empleado e = eDao.buscarPorId(id);
         HttpSession session = req.getSession();
         if (e != null) {
-            String cargoAnterior = e.getCargo();
             e.setNombres(req.getParameter("nombres").trim());
             e.setApellidos(req.getParameter("apellidos").trim());
             e.setIdentificacionExtranjera(req.getParameter("identificacionExtranjera"));
@@ -626,10 +639,9 @@ public class AdminServlet extends HttpServlet {
             e.setCorreo(req.getParameter("correo").trim());
             eDao.actualizar(e);
             
-            // PROBLEMA 7: Sincronizar perfil del usuario con el cargo
-            String nuevoPerfil = "Admin".equalsIgnoreCase(e.getCargo()) ? "ADMIN" : "EMPLEADO";
-            String perfilAnterior = cargoAnterior != null ? ("Admin".equalsIgnoreCase(cargoAnterior) ? "ADMIN" : "EMPLEADO") : null;
-            if (nuevoPerfil != null && !nuevoPerfil.equals(perfilAnterior) && e.getIdUsuario() != null) {
+            // Sincronizar perfil del usuario segun el cargo del empleado
+            if (e.getIdUsuario() != null) {
+                String nuevoPerfil = "Admin".equalsIgnoreCase(e.getCargo()) ? "ADMIN" : "EMPLEADO";
                 uDao.actualizarPerfil(e.getIdUsuario(), nuevoPerfil);
             }
             

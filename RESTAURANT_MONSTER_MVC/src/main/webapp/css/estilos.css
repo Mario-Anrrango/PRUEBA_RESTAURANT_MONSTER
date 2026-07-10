@@ -490,6 +490,21 @@ textarea.form-control { border-radius: 12px; resize: vertical; min-height: 90px;
     border: 1px solid #17a2b8;
 }
 
+.badge-usuario {
+    display: inline-block;
+    padding: 4px 8px;
+    background-color: #e7f3ff;
+    color: #0066cc;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.text-muted {
+    color: #999;
+    font-size: 12px;
+}
+
 /* ===== BADGES CARGO ===== */
 .badge-admin {
     display: inline-block;

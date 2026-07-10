@@ -158,7 +158,7 @@
         if (filtroEstado != null && !"TODOS".equals(filtroEstado)) paramsUrl += "&estado=" + filtroEstado;
     %>
     
-    <% if (tr > 0) { %>
+    <!-- Selector "Mostrar" SIEMPRE visible -->
     <div class="paginacion-container">
         <div class="paginacion-info">
             <label>Mostrar: 
@@ -172,7 +172,8 @@
             <span>Total: <%= tr %> registros</span>
         </div>
         
-        <% if (tp > 1) { %>
+        <!-- PaginaciÃ³n visible si hay al menos 1 registro -->
+        <% if (tr > 0) { %>
         <div class="paginacion-botones">
             <a href="<%= baseUrl + 1 + paramsUrl %>" class="<%= pg == 1 ? "disabled" : "" %>">≪ Inicio</a>
             <a href="<%= baseUrl + (pg - 1) + paramsUrl %>" class="<%= pg == 1 ? "disabled" : "" %>">‹ Anterior</a>
@@ -182,7 +183,6 @@
         </div>
         <% } %>
     </div>
-    <% } %>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
